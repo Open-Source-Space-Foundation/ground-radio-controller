@@ -17,7 +17,7 @@ pattern='^openocd-.*-x86_64-lin\.tar\.gz$'
 json="$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest")"
 url="$(jq -r --arg re "$pattern" '.assets[] | select(.name|test($re)) | .browser_download_url' <<<"$json" | head -n1)"
 
-wget -q -O "openocd.tar.gz" --show-progress "$url"
+wget -q -O "openocd.tar.gz" "$url"
 tar xzf "openocd.tar.gz"
 rm "openocd.tar.gz"
 
