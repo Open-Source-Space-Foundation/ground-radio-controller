@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 
-set -x
+dest="${1:?usage: $0 <dest-dir>}"
+mkdir -p "$dest"
+cd "$dest"
 
-mkdir -p rpi-openocd
-cd rpi-openocd
+# Optional: skip if already extracted (no stamp files)
+if [ -x "./openocd/bin/openocd" ]; then
+  echo "rpi-openocd already present in: $dest"
+  exit 0
+fi
 
 repo="raspberrypi/pico-sdk-tools"
 pattern='^openocd-.*-x86_64-lin\.tar\.gz$'
 
 json="$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest")"
-tag="$(echo "$json" | jq -r '.tag_name')"
-url="$(echo "$json" | jq -r --arg re "$pattern" '.assets[] | select(.name|test($re)) | .browser_download_url' | head -n1)"
-final_name="$(basename "$url")"
+url="$(jq -r --arg re "$pattern" '.assets[] | select(.name|test($re)) | .browser_download_url' <<<"$json" | head -n1)"
 
-echo "Latest release: $tag"
 wget -q -O "openocd.tar.gz" --show-progress "$url"
-
 tar xzf "openocd.tar.gz"
-
 rm "openocd.tar.gz"
+
