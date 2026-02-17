@@ -34,3 +34,21 @@ add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/FprimeZephyrReference")
 
 set_target_properties(Svc_FatalHandler PROPERTIES EXCLUDE_FROM_ALL TRUE)
 set_target_properties(fprime-zephyr_Drv_ZephyrSpiDriver PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+
+###
+# Raspberry Pi Pico Debug Probe Toolchain
+###
+
+set(RPI_OPENOCD_DIR "${CMAKE_BINARY_DIR}/rpi-openocd")
+set(RPI_OPENOCD_BIN "${RPI_OPENOCD_DIR}/openocd")
+
+add_custom_command(
+  OUTPUT "${RPI_OPENOCD_BIN}"
+  COMMAND "${CMAKE_SOURCE_DIR}/scripts/get-rpi-openocd.sh" "${RPI_OPENOCD_DIR}"
+  COMMENT "Fetching rpi-openocd into ${RPI_OPENOCD_DIR}"
+  VERBATIM
+)
+
+add_custom_target(rpi-openocd DEPENDS "${RPI_OPENOCD_BIN}")
+
