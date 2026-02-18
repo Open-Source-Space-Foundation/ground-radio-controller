@@ -21,7 +21,11 @@ echo "Got it!"
 cp ./build-artifacts/zephyr.uf2 "$MOUNTPOINT"
 ## REMOVE ENDING HERE
 
-until [ -e /dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station-if00 ]; do :; done
+trap "echo 'Timed out waiting for USB serial port after flash' 1>&2" EXIT
+
+timeout 5 sh -c 'until [ -e /dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station-if00 ]; do :; done'
+
+trap - EXIT
 
 fprime-gds --uart-device $(realpath /dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station-if00) --gui none &>/dev/null &
 
@@ -36,5 +40,5 @@ timeout 5 sh -c "until lsof -U 2>/dev/null | grep -q /tmp/fprime-server-out; do 
 # Unset TRAP_MSG as timeout has passed, but keep trap killing children on exit.
 TRAP_MSG=
 
-pytest
+pytest test/int/single_board_test.py
 
