@@ -56,4 +56,28 @@ module ReferenceDeployment {
 
   instance dataComDriver: Zephyr.ZephyrUartDriver base id 0x10015000
 
+  instance dataBufferManager: Svc.BufferManager base id 0x10016000 \
+    {
+        phase Fpp.ToCpp.Phases.configObjects """
+        Svc::BufferManager::BufferBins bins;
+        Fw::MallocAllocator mallocatorInstance;
+        """
+
+        phase Fpp.ToCpp.Phases.configComponents """
+        memset(&ConfigObjects::ReferenceDeployment_dataBufferManager::bins, 0, sizeof(ConfigObjects::ReferenceDeployment_dataBufferManager::bins));
+        ConfigObjects::ReferenceDeployment_dataBufferManager::bins.bins[0].bufferSize = 256;
+        ConfigObjects::ReferenceDeployment_dataBufferManager::bins.bins[0].numBuffers = 8;
+        ReferenceDeployment::dataBufferManager.setup(
+            87, // randomly chosen mgr ID
+            0,
+            ConfigObjects::ReferenceDeployment_dataBufferManager::mallocatorInstance,
+            ConfigObjects::ReferenceDeployment_dataBufferManager::bins
+        );
+        """
+
+        phase Fpp.ToCpp.Phases.tearDownComponents """
+        ReferenceDeployment::dataBufferManager.cleanup();
+        """
+    }
+
 }

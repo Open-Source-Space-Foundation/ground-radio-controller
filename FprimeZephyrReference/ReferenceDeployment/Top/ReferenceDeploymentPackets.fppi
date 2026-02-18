@@ -25,7 +25,15 @@ telemetry packets ReferenceDeploymentPackets {
     CdhCore.tlmSend.SendLevel
   }
 
-  packet Version id 4 group 3 {
+  packet Other id 4 group 2 {
+    ReferenceDeployment.dataBufferManager.NoBuffs
+    ReferenceDeployment.dataBufferManager.CurrBuffs
+    ReferenceDeployment.dataBufferManager.HiBuffs
+    ReferenceDeployment.dataBufferManager.EmptyBuffs
+    ReferenceDeployment.dataBufferManager.TotalBuffs
+  }
+
+  packet Version id 5 group 3 {
     CdhCore.version.FrameworkVersion
     CdhCore.version.ProjectVersion
     CdhCore.version.LibraryVersion01

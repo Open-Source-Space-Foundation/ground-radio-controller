@@ -27,6 +27,7 @@ module ReferenceDeployment {
     instance timer
     instance controlComDriver
     instance dataComDriver
+    instance dataBufferManager
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
