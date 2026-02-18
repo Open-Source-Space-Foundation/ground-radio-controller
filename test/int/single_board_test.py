@@ -7,14 +7,3 @@ def test_open_data_port():
     tty = open("/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station-if02")
     tty.close()
 
-# def test_get_packets_transmitted():
-#     pass
-#
-# def test_data_write_increments_packets_transmitted():
-#     # using a "packets sent" telemetry, drive the component which will glue
-#     # together the UART driver and the radio
-#     pass
-#
-# def test_get_packets_received():
-#     pass
-#
