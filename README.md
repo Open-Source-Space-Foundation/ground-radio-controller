@@ -1,8 +1,12 @@
+# Formatting
+
 Configure auto-formatting pre-commit with:
 
 ```
 git config core.hooksPath githooks
 ```
+
+# Zephyr Menuconfig
 
 I have found `menuconfig` to be helpful for exploring config options:
 
@@ -26,3 +30,6 @@ The workflow for seeing how to change `prj.conf` looks like this:
 $(find -name diffconfig) $(find -name before) $(find -name after)
 ```
 
+# Workflow
+
+I wrote `bft.sh` to speed the red-green-refactor loop
