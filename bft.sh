@@ -40,5 +40,5 @@ timeout 5 sh -c "until lsof -U 2>/dev/null | grep -q /tmp/fprime-server-out; do 
 # Unset TRAP_MSG as timeout has passed, but keep trap killing children on exit.
 TRAP_MSG=
 
-pytest test/int/single_board_test.py
+pytest test/int/one_board_test.py
 
