@@ -21,19 +21,19 @@ fi
 fprime-util build
 
 function flash() {
-	local BOARD_ID="$1"
+    local BOARD_ID="$1"
 
-	# PENDING DEBUG PROBE CONNECTOR ON NEXT FCB REVISION (and changes on `rpi-add-ocd` branch)
-	# fprime-util build --target program-board
+    # PENDING DEBUG PROBE CONNECTOR ON NEXT FCB REVISION (and changes on `rpi-add-ocd` branch)
+    # fprime-util build --target program-board
 
-	## REMOVE BEGINNING HERE
-	echo "Waiting for BOOTSEL on $BOARD_ID (remove once we get the debug probe connector on the next FCB revision)"
+    ## REMOVE BEGINNING HERE
+    echo "Waiting for BOOTSEL on $BOARD_ID (remove once we get the debug probe connector on the next FCB revision)"
 
-	DEV="/dev/disk/by-label/RP2350"
-	until [ -e "$DEV" ]; do :; done
-	until MOUNTPOINT=$(findmnt --json "$DEV" | jq -r '.filesystems.[0].target'); do :; done
+    DEV="/dev/disk/by-label/RP2350"
+    until [ -e "$DEV" ]; do :; done
+    until MOUNTPOINT=$(findmnt --json "$DEV" | jq -r '.filesystems.[0].target'); do :; done
 
-	echo "Got a BOOTSEL!"
+    echo "Got a BOOTSEL!"
 
     cp ./build-artifacts/zephyr.uf2 "$MOUNTPOINT"
     ## REMOVE ENDING HERE
