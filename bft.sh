@@ -13,9 +13,11 @@ NUM_BOARDS="$1"
 
 source testconfig
 BOARD_ONE_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_ONE-if00"
+BOARD_ONE_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_ONE-if02"
 
 if [[ "$NUM_BOARDS" -eq 2 ]]; then
 	BOARD_TWO_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_TWO-if00"
+	BOARD_TWO_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_TWO-if02"
 fi
 
 fprime-util build
@@ -66,7 +68,7 @@ TRAP_MSG=
 
 # Run appropriate test based on board configuration
 if [[ "$NUM_BOARDS" -eq 1 ]]; then
-	pytest --data-port-one="$BOARD_ONE_CONTROL_PORT" test/int/one_board_test.py
+	pytest --data-port-one="$BOARD_ONE_DATA_PORT" test/int/one_board_test.py
 else
-	pytest --data-port-one="$BOARD_ONE_CONTROL_PORT" --data-port-two="$BOARD_TWO_CONTROL_PORT" test/int/two_board_test.py
+	pytest --data-port-one="$BOARD_ONE_DATA_PORT" --data-port-two="$BOARD_TWO_DATA_PORT" test/int/two_board_test.py
 fi

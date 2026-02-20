@@ -11,3 +11,8 @@ def test_send_noop(fprime_test_api):
 def test_open_data_port(data_port_one):
     tty = open(data_port_one)
     tty.close()
+
+
+def test_write_data_port(data_port_one):
+    with open(data_port_one, mode="w") as tty:
+        tty.write("\0")
