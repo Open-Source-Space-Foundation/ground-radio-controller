@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+source testconfig
+BOARD_ONE_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_ONE-if00"
+
 fprime-util build
 
 # PENDING DEBUG PROBE CONNECTOR ON NEXT FCB REVISION (and changes on `rpi-add-ocd` branch)
@@ -23,11 +26,11 @@ cp ./build-artifacts/zephyr.uf2 "$MOUNTPOINT"
 
 trap "echo 'Timed out waiting for USB serial port after flash' 1>&2" EXIT
 
-timeout 5 sh -c 'until [ -e /dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station-if00 ]; do :; done'
+timeout 5 sh -c "until [ -e $BOARD_ONE_CONTROL_PORT ]; do :; done"
 
 trap - EXIT
 
-fprime-gds --uart-device $(realpath /dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station-if00) --gui none &>/dev/null &
+fprime-gds --uart-device $(realpath "$BOARD_ONE_CONTROL_PORT") --gui none &>/dev/null &
 
 # Kill children on exit to clean up GDS
 # Also zero out SIGTERM handler to avoid "Terminated" message after trap handler sends bash SIGTERM
@@ -40,5 +43,5 @@ timeout 5 sh -c "until lsof -U 2>/dev/null | grep -q /tmp/fprime-server-out; do 
 # Unset TRAP_MSG as timeout has passed, but keep trap killing children on exit.
 TRAP_MSG=
 
-pytest test/int/one_board_test.py
+pytest --data-port-one="$BOARD_ONE_CONTROL_PORT" test/int/one_board_test.py
 

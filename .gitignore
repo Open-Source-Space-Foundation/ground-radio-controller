@@ -18,6 +18,7 @@ lib/zephyr-workspace/*
 .DS_Store
 *.gcov
 build
+/testconfig
 
 **/__pycache__/
 **/*.egg-info/
