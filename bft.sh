@@ -4,29 +4,50 @@
 
 set -euo pipefail
 
+if [[ $# -ne 1 ]] || [[ ! "$1" =~ ^[12]$ ]]; then
+	echo "Usage: $0 {1|2}" >&2
+	exit 1
+fi
+
+NUM_BOARDS="$1"
+
 source testconfig
 BOARD_ONE_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_ONE-if00"
 
+if [[ "$NUM_BOARDS" -eq 2 ]]; then
+	BOARD_TWO_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_TWO-if00"
+fi
+
 fprime-util build
 
-# PENDING DEBUG PROBE CONNECTOR ON NEXT FCB REVISION (and changes on `rpi-add-ocd` branch)
-# fprime-util build --target program-board
+function flash() {
+	local BOARD_ID="$1"
 
-## REMOVE BEGINNING HERE
-echo "Waiting for BOOTSEL (remove once we get the debug probe connector on the next FCB revision)"
+	# PENDING DEBUG PROBE CONNECTOR ON NEXT FCB REVISION (and changes on `rpi-add-ocd` branch)
+	# fprime-util build --target program-board
 
-DEV="/dev/disk/by-label/RP2350"
-until [ -e "$DEV" ]; do :; done
-until MOUNTPOINT=$(findmnt --json "$DEV" | jq -r '.filesystems.[0].target'); do :; done
+	## REMOVE BEGINNING HERE
+	echo "Waiting for BOOTSEL on $BOARD_ID (remove once we get the debug probe connector on the next FCB revision)"
 
-echo "Got it!"
+	DEV="/dev/disk/by-label/RP2350"
+	until [ -e "$DEV" ]; do :; done
+	until MOUNTPOINT=$(findmnt --json "$DEV" | jq -r '.filesystems.[0].target'); do :; done
 
-cp ./build-artifacts/zephyr.uf2 "$MOUNTPOINT"
-## REMOVE ENDING HERE
+	echo "Got a BOOTSEL!"
 
-trap "echo 'Timed out waiting for USB serial port after flash' 1>&2" EXIT
+    cp ./build-artifacts/zephyr.uf2 "$MOUNTPOINT"
+    ## REMOVE ENDING HERE
+}
 
+flash "$BOARD_ONE"
+trap "echo 'Timed out waiting for USB serial port after flash $BOARD_ONE' 1>&2" EXIT
 timeout 5 sh -c "until [ -e $BOARD_ONE_CONTROL_PORT ]; do :; done"
+
+if [[ "$NUM_BOARDS" -eq 2 ]]; then
+    flash "$BOARD_TWO"
+    trap "echo 'Timed out waiting for USB serial port after flash $BOARD_TWO' 1>&2" EXIT
+    timeout 5 sh -c "until [ -e $BOARD_TWO_CONTROL_PORT ]; do :; done"
+fi
 
 trap - EXIT
 
@@ -43,5 +64,9 @@ timeout 5 sh -c "until lsof -U 2>/dev/null | grep -q /tmp/fprime-server-out; do 
 # Unset TRAP_MSG as timeout has passed, but keep trap killing children on exit.
 TRAP_MSG=
 
-pytest --data-port-one="$BOARD_ONE_CONTROL_PORT" test/int/one_board_test.py
-
+# Run appropriate test based on board configuration
+if [[ "$NUM_BOARDS" -eq 1 ]]; then
+	pytest --data-port-one="$BOARD_ONE_CONTROL_PORT" test/int/one_board_test.py
+else
+	pytest --data-port-one="$BOARD_ONE_CONTROL_PORT" --data-port-two="$BOARD_TWO_CONTROL_PORT" test/int/two_board_test.py
+fi
