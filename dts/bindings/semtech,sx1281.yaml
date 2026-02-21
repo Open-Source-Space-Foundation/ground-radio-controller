@@ -1,0 +1,33 @@
+
+
+compatible: "semtech,sx1281"
+
+include: ["base.yaml", i2c-device.yaml]
+
+description: "Foo"
+
+properties:
+  nrst-gpio:
+    type: phandle-array
+    specifier-space: "gpio"
+    required: true
+
+  rx-en-gpio:
+    type: phandle-array
+    specifier-space: "gpio"
+    required: true
+
+  tx-en-gpio:
+    type: phandle-array
+    specifier-space: "gpio"
+    required: true
+
+  irq-gpio:
+    type: phandle-array
+    specifier-space: "gpio"
+    required: true
+
+  busy-gpio:
+    type: phandle-array
+    specifier-space: "gpio"
+    required: true

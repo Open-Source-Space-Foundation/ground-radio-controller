@@ -1,16 +1,47 @@
 &zephyr_udc0 {
-    // Control port
-    cdc_acm_uart0: cdc_acm_uart0 {
-        compatible = "zephyr,cdc-acm-uart";
-    };
-    // Data port
-    cdc_acm_uart1: cdc_acm_uart1 {
-        compatible = "zephyr,cdc-acm-uart";
-    };
+	// Control port
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+	// Data port
+	cdc_acm_uart1: cdc_acm_uart1 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
 };
 
 / {
-    chosen {
-        zephyr,console = &cdc_acm_uart0;
-    };
+	chosen {
+		zephyr,console = &cdc_acm_uart0;
+	};
+
+};
+
+&spi0 {
+	status = "okay";
+	cs-gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
+	pinctrl-0 = <&spi0_default>;
+	pinctrl-names = "default";
+	sx1280: sx1280@0 {
+		compatible = "semtech,sx1281";
+		reg = <0>;
+
+		nrst-gpio = <&gpio0 17 (GPIO_PULL_UP | GPIO_ACTIVE_HIGH)>;
+		rx-en-gpio = <&gpio0 21 (GPIO_PULL_UP | GPIO_ACTIVE_HIGH)>;
+		tx-en-gpio = <&gpio0 22 (GPIO_PULL_UP | GPIO_ACTIVE_HIGH)>;
+		irq-gpio = <&mcp23017 5 GPIO_ACTIVE_HIGH>;
+		busy-gpio = <&mcp23017 6 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&i2c1 {
+	mcp23017: mcp23017@20 {
+		compatible = "microchip,mcp23017";
+		reg = <0x20>;
+		gpio-controller;
+		#gpio-cells = <2>;
+
+		reset-gpios = <&gpio0 20 GPIO_ACTIVE_LOW>;
+
+		ngpios = <16>;
+	};
 };
