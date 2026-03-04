@@ -97,6 +97,7 @@ int main(int argc, char* argv[]) {
     ReferenceDeployment::TopologyState inputs;
     inputs.controlUartDevice = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart0));
     inputs.dataUartDevice = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart1));
+    inputs.loraDevice = DEVICE_DT_GET(DT_NODELABEL(lora0));
     inputs.controlUartBaudRate = 115200;
     inputs.dataUartBaudRate = 115200;
 
