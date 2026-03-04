@@ -79,20 +79,6 @@ module ReferenceDeployment {
       controlComDriver.ready         -> ComCcsds.comStub.drvConnected
     }
 
-    connections DataCommunications {
-      # dataComDriver buffer allocations
-      dataComDriver.allocate      -> dataBufferManager.bufferGetCallee
-      dataComDriver.deallocate    -> dataBufferManager.bufferSendIn
-
-      # dataComDriver <-> dataComStub (Uplink)
-      dataComDriver.$recv                     -> dataComStub.drvReceiveIn
-      dataComStub.drvReceiveReturnOut -> dataComDriver.recvReturnIn
-
-      # dataComStub <-> dataComDriver (Downlink)
-      dataComStub.drvSendOut      -> dataComDriver.$send
-      dataComDriver.ready         -> dataComStub.drvConnected
-    }
-
     connections RateGroups {
       # timer to drive rate group
       timer.CycleOut -> rateGroupDriver.CycleIn
@@ -100,7 +86,6 @@ module ReferenceDeployment {
       # High rate (10Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
       rateGroup10Hz.RateGroupMemberOut[0] -> controlComDriver.schedIn
-      rateGroup10Hz.RateGroupMemberOut[1] -> dataComDriver.schedIn
 
       # Slow rate (1Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1Hz] -> rateGroup1Hz.CycleIn
@@ -109,7 +94,6 @@ module ReferenceDeployment {
       rateGroup1Hz.RateGroupMemberOut[2] -> ComCcsds.commsBufferManager.schedIn
       rateGroup1Hz.RateGroupMemberOut[3] -> CdhCore.tlmSend.Run
       rateGroup1Hz.RateGroupMemberOut[4] -> ComCcsds.aggregator.timeout
-      rateGroup1Hz.RateGroupMemberOut[5] -> dataBufferManager.schedIn
     }
 
     connections ReferenceDeployment {
