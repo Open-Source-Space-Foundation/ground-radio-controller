@@ -76,7 +76,7 @@ void setupTopology(const TopologyState& state) {
 
     dataComDriver.configure(state.dataUartDevice, state.dataUartBaudRate);
 
-    uhf.start(state.loraDevice, Zephyr::TransmitState::ENABLED);
+    uhf.start(state.loraDevice, Zephyr::TransmitState::DISABLED);
 }
 
 void startRateGroups() {

@@ -31,8 +31,6 @@ telemetry packets ReferenceDeploymentPackets {
     ReferenceDeployment.dataBufferManager.HiBuffs
     ReferenceDeployment.dataBufferManager.EmptyBuffs
     ReferenceDeployment.dataBufferManager.TotalBuffs
-    ReferenceDeployment.dataComQueue.comQueueDepth
-    ReferenceDeployment.dataComQueue.buffQueueDepth
   }
 
   packet UhfRadio id 6 group 2 {

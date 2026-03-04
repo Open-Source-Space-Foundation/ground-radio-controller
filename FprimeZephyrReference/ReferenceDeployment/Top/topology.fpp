@@ -30,7 +30,6 @@ module ReferenceDeployment {
     instance dataBufferManager
     instance uhf
     instance dataComStub
-    instance dataComQueue
     instance prmDb
 
   # ----------------------------------------------------------------------
@@ -104,9 +103,6 @@ module ReferenceDeployment {
       # uhf buffer allocations
       uhf.allocate                -> dataBufferManager.bufferGetCallee
       uhf.deallocate              -> dataBufferManager.bufferSendIn
-
-      # uhf comStatus -> dataComQueue (ping-pong sink)
-      uhf.comStatusOut            -> dataComQueue.comStatusIn
     }
 
     connections RateGroups {
@@ -126,7 +122,6 @@ module ReferenceDeployment {
       rateGroup1Hz.RateGroupMemberOut[3] -> CdhCore.tlmSend.Run
       rateGroup1Hz.RateGroupMemberOut[4] -> ComCcsds.aggregator.timeout
       rateGroup1Hz.RateGroupMemberOut[5] -> dataBufferManager.schedIn
-      rateGroup1Hz.RateGroupMemberOut[6] -> dataComQueue.run
     }
 
     connections ReferenceDeployment {
