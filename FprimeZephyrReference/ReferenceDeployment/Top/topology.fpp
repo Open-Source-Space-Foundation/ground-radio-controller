@@ -28,6 +28,7 @@ module ReferenceDeployment {
     instance controlComDriver
     instance dataComDriver
     instance dataBufferManager
+    instance uhf
     instance prmDb
 
   # ----------------------------------------------------------------------

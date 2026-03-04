@@ -33,6 +33,13 @@ telemetry packets ReferenceDeploymentPackets {
     ReferenceDeployment.dataBufferManager.TotalBuffs
   }
 
+  packet UhfRadio id 6 group 2 {
+    ReferenceDeployment.uhf.BytesReceived
+    ReferenceDeployment.uhf.BytesSent
+    ReferenceDeployment.uhf.LastRssi
+    ReferenceDeployment.uhf.LastSnr
+  }
+
   packet Version id 5 group 3 {
     CdhCore.version.FrameworkVersion
     CdhCore.version.ProjectVersion
