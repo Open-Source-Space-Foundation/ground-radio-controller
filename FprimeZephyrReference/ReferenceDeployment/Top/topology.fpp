@@ -28,12 +28,14 @@ module ReferenceDeployment {
     instance controlComDriver
     instance dataComDriver
     instance dataBufferManager
+    instance prmDb
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
   # ----------------------------------------------------------------------
 
     command connections instance CdhCore.cmdDisp
+    param connections instance prmDb
     event connections instance CdhCore.events
     text event connections instance CdhCore.textLogger
     health connections instance CdhCore.$health
