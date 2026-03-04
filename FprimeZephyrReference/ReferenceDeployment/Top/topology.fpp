@@ -91,6 +91,18 @@ module ReferenceDeployment {
       # dataComStub <-> dataComDriver (Downlink)
       dataComStub.drvSendOut      -> dataComDriver.$send
       dataComDriver.ready         -> dataComStub.drvConnected
+
+      # dataComStub <-> uhf (Uplink)
+      dataComStub.dataOut         -> uhf.dataIn
+      uhf.dataReturnOut           -> dataComStub.dataReturnIn
+
+      # uhf <-> dataComStub (Downlink)
+      uhf.dataOut                 -> dataComStub.dataIn
+      dataComStub.dataReturnOut   -> uhf.dataReturnIn
+
+      # uhf buffer allocations
+      uhf.allocate                -> dataBufferManager.bufferGetCallee
+      uhf.deallocate              -> dataBufferManager.bufferSendIn
     }
 
     connections RateGroups {
