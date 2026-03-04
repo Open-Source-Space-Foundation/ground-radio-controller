@@ -80,4 +80,6 @@ module ReferenceDeployment {
         """
     }
 
+      instance uhf: Zephyr.LoRa base id 0x10017000
+
 }
