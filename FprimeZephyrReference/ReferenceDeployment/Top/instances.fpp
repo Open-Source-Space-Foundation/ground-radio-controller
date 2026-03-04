@@ -84,6 +84,33 @@ module ReferenceDeployment {
 
   instance dataComStub: Svc.ComStub base id 0x10019000
 
+  instance dataComQueue: Svc.ComQueue base id 0x1001A000 \
+    queue size Default.QUEUE_SIZE \
+    stack size Default.STACK_SIZE \
+    priority 6 \
+    {
+        phase Fpp.ToCpp.Phases.configObjects """
+        Fw::MallocAllocator dataComQueueMallocator;
+        """
+
+        phase Fpp.ToCpp.Phases.configComponents """
+        Svc::ComQueue::QueueConfigurationTable dataComQueueConfigTable;
+        dataComQueueConfigTable.entries[0].depth = 5;
+        dataComQueueConfigTable.entries[0].priority = 0;
+        dataComQueueConfigTable.entries[1].depth = 5;
+        dataComQueueConfigTable.entries[1].priority = 1;
+        dataComQueueConfigTable.entries[2].depth = 5;
+        dataComQueueConfigTable.entries[2].priority = 2;
+        ReferenceDeployment::dataComQueue.configure(
+            dataComQueueConfigTable, 0,
+            ConfigObjects::ReferenceDeployment_dataComQueue::dataComQueueMallocator);
+        """
+
+        phase Fpp.ToCpp.Phases.tearDownComponents """
+        ReferenceDeployment::dataComQueue.cleanup();
+        """
+    }
+
   instance prmDb: Svc.PrmDb base id 0x10018000 \
     queue size Default.QUEUE_SIZE \
     stack size Default.STACK_SIZE \
