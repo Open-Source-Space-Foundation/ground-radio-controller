@@ -80,7 +80,7 @@ module ReferenceDeployment {
         """
     }
 
-      instance uhf: Zephyr.LoRa base id 0x10017000
+  instance uhf: Zephyr.LoRa base id 0x10017000
 
   instance prmDb: Svc.PrmDb base id 0x10018000 \
     queue size Default.QUEUE_SIZE \
