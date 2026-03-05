@@ -20,7 +20,31 @@ ByteComBridge ::~ByteComBridge() {}
 // Handler implementations for typed input ports
 // ----------------------------------------------------------------------
 
-void ByteComBridge ::TODO_handler(FwIndexType portNum, U32 context) {
+void ByteComBridge ::byteStreamReady_handler(FwIndexType portNum) {
+    // TODO
+}
+
+void ByteComBridge ::byteStreamRecv_handler(FwIndexType portNum,
+                                            Fw::Buffer& buffer,
+                                            const Drv::ByteStreamStatus& status) {
+    // TODO
+}
+
+void ByteComBridge ::comDataIn_handler(FwIndexType portNum, Fw::Buffer& data, const ComCfg::FrameContext& context) {
+    // TODO
+}
+
+void ByteComBridge ::comDataReturnIn_handler(FwIndexType portNum,
+                                             Fw::Buffer& data,
+                                             const ComCfg::FrameContext& context) {
+    // TODO
+}
+
+void ByteComBridge ::comStatusIn_handler(FwIndexType portNum, Fw::Success& condition) {
+    // TODO
+}
+
+void ByteComBridge ::recvReturnIn_handler(FwIndexType portNum, Fw::Buffer& fwBuffer) {
     // TODO
 }
 
