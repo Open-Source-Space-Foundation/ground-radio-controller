@@ -23,8 +23,8 @@ module Components {
 
         output port byteStreamSend: Drv.ByteStreamSend
 
-        @ Port to send back ownership of data received out on byteStreamRecv port
-        guarded input port recvReturnIn: Fw.BufferSend
+        @ Port to send back ownership of data received on byteStreamRecv port
+        output port byteStreamRecvReturnOut: Fw.BufferSend
 
 
         ##############################################################################

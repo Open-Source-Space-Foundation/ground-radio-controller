@@ -54,13 +54,6 @@ class ByteComBridge final : public ByteComBridgeComponentBase {
     void comStatusIn_handler(FwIndexType portNum,    //!< The port number
                              Fw::Success& condition  //!< Condition success/failure
                              ) override;
-
-    //! Handler implementation for recvReturnIn
-    //!
-    //! Port to send back ownership of data received out on byteStreamRecv port
-    void recvReturnIn_handler(FwIndexType portNum,  //!< The port number
-                              Fw::Buffer& fwBuffer  //!< The buffer
-                              ) override;
 };
 
 }  // namespace Components

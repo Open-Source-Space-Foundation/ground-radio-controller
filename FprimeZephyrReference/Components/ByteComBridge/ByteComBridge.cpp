@@ -44,8 +44,4 @@ void ByteComBridge ::comStatusIn_handler(FwIndexType portNum, Fw::Success& condi
     // TODO
 }
 
-void ByteComBridge ::recvReturnIn_handler(FwIndexType portNum, Fw::Buffer& fwBuffer) {
-    // TODO
-}
-
 }  // namespace Components
