@@ -2,29 +2,35 @@ module Components {
     @ Component which bridges a Drv.ByteStreamDriver to a Svc.Com
     active component ByteComBridge {
 
-        # One async command/port is required for active components
-        # This should be overridden by the developers with a useful command/port
-        @ TODO
-        async input port TODO: Svc.Sched
+        # COM
+
+        output port comDataOut: Svc.ComDataWithContext
+        async input port comDataIn: Svc.ComDataWithContext
+        async input port comStatusIn: Fw.SuccessCondition
+
+        @ Port returning ownership of data that came in on comDataIn
+        output port comDataReturnOut: Svc.ComDataWithContext
+
+        @ Port receiving back ownership of buffer sent out on comDataOut
+        async input port comDataReturnIn: Svc.ComDataWithContext
+
+
+        # BYTE STREAM
+
+        async input port byteStreamReady: Drv.ByteStreamReady
+
+        async input port byteStreamRecv: Drv.ByteStreamData
+
+        output port byteStreamSend: Drv.ByteStreamSend
+
+        @ Port to send back ownership of data received out on byteStreamRecv port
+        guarded input port recvReturnIn: Fw.BufferSend
+
 
         ##############################################################################
         #### Uncomment the following examples to start customizing your component ####
         ##############################################################################
 
-        # @ Example async command
-        # async command COMMAND_NAME(param_name: U32)
-
-        # @ Example telemetry counter
-        # telemetry ExampleCounter: U64
-
-        # @ Example event
-        # event ExampleStateEvent(example_state: Fw.On) severity activity high id 0 format "State set to {}"
-
-        # @ Example port: receiving calls from the rate group
-        # sync input port run: Svc.Sched
-
-        # @ Example parameter
-        # param PARAMETER_NAME: U32
 
         ###############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters  #
