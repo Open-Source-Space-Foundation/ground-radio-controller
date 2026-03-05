@@ -21,27 +21,34 @@ ByteComBridge ::~ByteComBridge() {}
 // ----------------------------------------------------------------------
 
 void ByteComBridge ::byteStreamReady_handler(FwIndexType portNum) {
-    // TODO
+    // No action needed
 }
 
 void ByteComBridge ::byteStreamRecv_handler(FwIndexType portNum,
                                             Fw::Buffer& buffer,
                                             const Drv::ByteStreamStatus& status) {
-    // TODO
+    if (status.e == Drv::ByteStreamStatus::OP_OK) {
+        ComCfg::FrameContext context;
+        this->comDataOut_out(0, buffer, context);
+    } else {
+        // No valid data; return buffer ownership immediately
+        this->byteStreamRecvReturnOut_out(0, buffer);
+    }
 }
 
 void ByteComBridge ::comDataIn_handler(FwIndexType portNum, Fw::Buffer& data, const ComCfg::FrameContext& context) {
-    // TODO
+    this->byteStreamSend_out(0, data);
+    this->comDataReturnOut_out(0, data, context);
 }
 
 void ByteComBridge ::comDataReturnIn_handler(FwIndexType portNum,
                                              Fw::Buffer& data,
                                              const ComCfg::FrameContext& context) {
-    // TODO
+    this->byteStreamRecvReturnOut_out(0, data);
 }
 
 void ByteComBridge ::comStatusIn_handler(FwIndexType portNum, Fw::Success& condition) {
-    // TODO
+    // No action needed
 }
 
 }  // namespace Components
