@@ -30,6 +30,7 @@ module ReferenceDeployment {
     instance dataBufferManager
     instance uhf
     instance prmDb
+    instance byteComBridge
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
@@ -78,6 +79,26 @@ module ReferenceDeployment {
       controlComDriver.ready         -> ComCcsds.comStub.drvConnected
     }
 
+    connections Data {
+      # dataComDriver connections
+      dataComDriver.allocate                -> dataBufferManager.bufferGetCallee
+      dataComDriver.deallocate              -> dataBufferManager.bufferSendIn
+      dataComDriver.$recv                   -> byteComBridge.byteStreamRecv
+      dataComDriver.ready                   -> byteComBridge.byteStreamReady
+      byteComBridge.byteStreamSend          -> dataComDriver.$send
+      byteComBridge.byteStreamRecvReturnOut -> dataComDriver.recvReturnIn
+
+      # UHF connections
+      uhf.allocate                   -> dataBufferManager.bufferGetCallee
+      uhf.deallocate                 -> dataBufferManager.bufferSendIn
+      uhf.dataOut                    -> byteComBridge.comDataIn
+      uhf.comStatusOut               -> byteComBridge.comStatusIn
+      uhf.dataReturnOut              -> byteComBridge.comDataReturnIn
+      byteComBridge.comDataOut       -> uhf.dataIn
+      byteComBridge.comDataReturnOut -> uhf.dataReturnIn
+
+    }
+
     connections RateGroups {
       # timer to drive rate group
       timer.CycleOut -> rateGroupDriver.CycleIn
@@ -85,6 +106,7 @@ module ReferenceDeployment {
       # High rate (10Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
       rateGroup10Hz.RateGroupMemberOut[0] -> controlComDriver.schedIn
+      rateGroup10Hz.RateGroupMemberOut[1] -> dataComDriver.schedIn
 
       # Slow rate (1Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1Hz] -> rateGroup1Hz.CycleIn
