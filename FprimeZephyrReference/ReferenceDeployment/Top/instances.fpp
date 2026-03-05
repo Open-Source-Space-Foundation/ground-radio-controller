@@ -87,4 +87,9 @@ module ReferenceDeployment {
     stack size Default.STACK_SIZE \
     priority 5
 
+  instance byteComBridge: Components.ByteComBridge base id 0x10019000 \
+    queue size Default.QUEUE_SIZE \
+    stack size Default.STACK_SIZE \
+    priority 5
+
 }
