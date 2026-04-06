@@ -53,7 +53,7 @@ fi
 
 trap - EXIT
 
-fprime-gds --uart-device $(realpath "$BOARD_ONE_CONTROL_PORT") --gui none &>/dev/null &
+fprime-gds --uart-device $(realpath -e "$BOARD_ONE_CONTROL_PORT") --gui none &>/dev/null &
 
 # Kill children on exit to clean up GDS
 # Also zero out SIGTERM handler to avoid "Terminated" message after trap handler sends bash SIGTERM
