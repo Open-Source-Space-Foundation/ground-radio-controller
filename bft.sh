@@ -38,17 +38,21 @@ function flash() {
     echo "Got a BOOTSEL!"
 
     cp ./build-artifacts/zephyr.uf2 "$MOUNTPOINT"
+    until [ ! -e "$DEV" ]; do :; done
     ## REMOVE ENDING HERE
 }
 
 flash "$BOARD_ONE"
 trap "echo 'Timed out waiting for USB serial port after flash $BOARD_ONE' 1>&2" EXIT
+
 timeout 5 sh -c "until [ -e $BOARD_ONE_CONTROL_PORT ]; do :; done"
 
 if [[ "$NUM_BOARDS" -eq 2 ]]; then
     flash "$BOARD_TWO"
     trap "echo 'Timed out waiting for USB serial port after flash $BOARD_TWO' 1>&2" EXIT
     timeout 5 sh -c "until [ -e $BOARD_TWO_CONTROL_PORT ]; do :; done"
+    # for some reason, symlink for board one disappears after flashing board two
+    timeout 5 sh -c "until [ -e $BOARD_ONE_CONTROL_PORT ]; do :; done"
 fi
 
 trap - EXIT
