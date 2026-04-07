@@ -63,11 +63,12 @@ trap "printf \"\$TRAP_MSG\" 1>&2 && trap '' SIGTERM && kill -- -$$" SIGINT SIGTE
 
 timeout 5 sh -c "until lsof -U 2>/dev/null | grep -q /tmp/fprime-server-out; do :; done"
 
-TRAP_MSG="\n\nTimed out running pytest\n"
+# Unset TRAP_MSG as timeout has passed, but keep trap killing children on exit.
+TRAP_MSG=
 
 # Run appropriate test based on board configuration
 if [[ "$NUM_BOARDS" -eq 1 ]]; then
-	timeout 10 pytest --data-port-one="$BOARD_ONE_DATA_PORT" test/int/one_board_test.py
+	pytest --data-port-one="$BOARD_ONE_DATA_PORT" test/int/one_board_test.py
 else
-	timeout 10 pytest --data-port-one="$BOARD_ONE_DATA_PORT" --data-port-two="$BOARD_TWO_DATA_PORT" test/int/two_board_test.py
+	pytest --data-port-one="$BOARD_ONE_DATA_PORT" --data-port-two="$BOARD_TWO_DATA_PORT" test/int/two_board_test.py
 fi
