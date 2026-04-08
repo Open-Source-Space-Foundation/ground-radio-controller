@@ -16,14 +16,13 @@
 #include "Svc/Subtopologies/CdhCore/SubtopologyTopologyDefs.hpp"
 #include "Svc/Subtopologies/ComCcsds/SubtopologyTopologyDefs.hpp"
 
-//ComCcsds Enum Includes
+// ComCcsds Enum Includes
 #include "Svc/Subtopologies/ComCcsds/Ports_ComPacketQueueEnumAc.hpp"
 #include "Svc/Subtopologies/ComCcsds/Ports_ComBufferQueueEnumAc.hpp"
 
 // Include autocoded FPP constants
 #include "FprimeZephyrReference/ReferenceDeployment/Top/FppConstantsAc.hpp"
 #include <zephyr/drivers/uart.h>
-
 
 /**
  * \brief required ping constants
@@ -49,6 +48,9 @@ namespace ReferenceDeployment_rateGroup10Hz {
 enum { WARN = 3, FATAL = 5 };
 }
 namespace ReferenceDeployment_rateGroup1Hz {
+enum { WARN = 3, FATAL = 5 };
+}
+namespace ReferenceDeployment_fileManager {
 enum { WARN = 3, FATAL = 5 };
 }
 }  // namespace PingEntries

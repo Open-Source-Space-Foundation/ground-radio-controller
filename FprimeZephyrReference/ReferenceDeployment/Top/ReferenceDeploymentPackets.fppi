@@ -31,6 +31,8 @@ telemetry packets ReferenceDeploymentPackets {
     ReferenceDeployment.dataBufferManager.HiBuffs
     ReferenceDeployment.dataBufferManager.EmptyBuffs
     ReferenceDeployment.dataBufferManager.TotalBuffs
+    ReferenceDeployment.fileManager.CommandsExecuted
+    ReferenceDeployment.fileManager.Errors
   }
 
   packet Version id 5 group 3 {

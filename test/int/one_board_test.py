@@ -16,3 +16,16 @@ def test_open_data_port(data_port_one):
 def test_write_data_port(data_port_one):
     with open(data_port_one, mode="w") as tty:
         tty.write("\0")
+
+
+def test_create_directory(fprime_test_api):
+    dir_name = "/test_dir"
+
+    fprime_test_api.send_command(
+        "ReferenceDeployment.fileManager.CreateDirectory",
+        [dir_name],
+    )
+    fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.CreateDirectorySucceeded",
+        timeout=2,
+    )
