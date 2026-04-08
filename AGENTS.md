@@ -18,3 +18,6 @@ worktree changes via git, the generate cache is corrupted and you will get an
 inexplicable build error. Running `fprime-util generate -f` will force a clean
 generate and can sometimes fix these errors.
 
+There are three submodules, `lib/fprime`, `lib/fprime-zephyr`, and
+`lib/zephyr-workspace/zephyr`. You are not to edit code in any of them except
+to add logging statements which will later be removed.
