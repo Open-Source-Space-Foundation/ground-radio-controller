@@ -15,6 +15,6 @@ only the one-board tests.
 
 Sometimes, especially after the user has polluted the workspace with lots of
 worktree changes via git, the generate cache is corrupted and you will get an
-inexplicable build error. Running `git clean -dfX` to remove all gitignored
-files including all build + generate artifacts can sometimes fix these errors.
+inexplicable build error. Running `fprime-util generate -f` will force a clean
+generate and can sometimes fix these errors.
 
