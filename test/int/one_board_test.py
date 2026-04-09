@@ -82,3 +82,15 @@ def test_list_directory(fprime_test_api):
         [dir_name],
         timeout=2,
     )
+
+
+def test_remove_file_missing_file(fprime_test_api):
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.RemoveFile",
+        ["/definitely_missing_test_file", True],
+        timeout=2,
+    )
+    fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.FileRemoveError",
+        timeout=2,
+    )
