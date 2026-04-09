@@ -175,3 +175,52 @@ def test_move_file(fprime_test_api):
         [destination, True],
         timeout=2,
     )
+
+
+def test_append_file(fprime_test_api):
+    source = "/sap0.bin"
+    destination = "/sap1.bin"
+    source_payload = b"src"
+    destination_payload = b"destination-payload"
+
+    with NamedTemporaryFile(mode="wb") as source_temp_file:
+        source_temp_file.write(source_payload)
+        source_temp_file.flush()
+        fprime_test_api.uplink_file_and_await_completion(
+            source_temp_file.name, source, timeout=5
+        )
+
+    with NamedTemporaryFile(mode="wb") as destination_temp_file:
+        destination_temp_file.write(destination_payload)
+        destination_temp_file.flush()
+        fprime_test_api.uplink_file_and_await_completion(
+            destination_temp_file.name, destination, timeout=5
+        )
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.AppendFile",
+        [source, destination],
+        timeout=2,
+    )
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.FileSize",
+        [destination],
+        timeout=2,
+    )
+    event = fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.FileSizeSucceeded",
+        timeout=2,
+    )
+    assert event.args[1].val == len(source_payload) + len(destination_payload)
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.RemoveFile",
+        [source, True],
+        timeout=2,
+    )
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.RemoveFile",
+        [destination, True],
+        timeout=2,
+    )
