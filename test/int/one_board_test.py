@@ -224,3 +224,28 @@ def test_append_file(fprime_test_api):
         [destination, True],
         timeout=2,
     )
+
+
+def test_create_directory_already_exists_fails(fprime_test_api):
+    dir_name = "/tdir"
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.CreateDirectory",
+        [dir_name],
+        timeout=2,
+    )
+
+    fprime_test_api.send_command(
+        "ReferenceDeployment.fileManager.CreateDirectory",
+        [dir_name],
+    )
+    fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.DirectoryCreateError",
+        timeout=2,
+    )
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.RemoveDirectory",
+        [dir_name],
+        timeout=2,
+    )
