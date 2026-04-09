@@ -25,3 +25,4 @@ to add logging statements which will later be removed.
 
 When you are writing unit tests, keep them *as concise as possible*. Each test
 should clean up after itself, so that every test can assume a clean workspace.
+No test should EVER be skipped.
