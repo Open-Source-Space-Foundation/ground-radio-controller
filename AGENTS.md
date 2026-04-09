@@ -1,4 +1,5 @@
-Every command must be run within venv `./fprime-venv`.
+Every command must be run within venv `./fprime-venv`. So, rather than `foo`,
+run `source fprime-venv/bin/activate && foo`.
 
 The tests are located in `test/int/one_board_test.py` and
 `test/int/two_board_test.py`.
