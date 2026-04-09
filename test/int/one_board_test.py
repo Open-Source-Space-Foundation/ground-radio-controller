@@ -134,3 +134,44 @@ def test_file_size(fprime_test_api):
         [destination, True],
         timeout=2,
     )
+
+
+def test_move_file(fprime_test_api):
+    payload = b"move-file-check"
+    source = "/smv0.bin"
+    destination = "/smv1.bin"
+
+    with NamedTemporaryFile(mode="wb") as temp_file:
+        temp_file.write(payload)
+        temp_file.flush()
+        fprime_test_api.uplink_file_and_await_completion(
+            temp_file.name, source, timeout=5
+        )
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.MoveFile",
+        [source, destination],
+        timeout=2,
+    )
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.FileSize",
+        [destination],
+        timeout=2,
+    )
+    event = fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.FileSizeSucceeded",
+        timeout=2,
+    )
+    assert event.args[1].val == len(payload)
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.RemoveFile",
+        [source, True],
+        timeout=2,
+    )
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.RemoveFile",
+        [destination, True],
+        timeout=2,
+    )
