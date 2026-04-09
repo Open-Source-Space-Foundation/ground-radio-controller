@@ -30,3 +30,6 @@ When you are writing tests:
 - No test should EVER be skipped.
 - Each test should only test ONE THING. And do the minimal amount to test that
   one thing.
+
+The filesystem on the board has a pretty short limitation on file name
+lengths, so keep that in mind.
