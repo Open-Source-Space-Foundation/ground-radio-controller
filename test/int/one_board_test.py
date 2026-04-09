@@ -249,3 +249,41 @@ def test_create_directory_already_exists_fails(fprime_test_api):
         [dir_name],
         timeout=2,
     )
+
+
+def test_remove_directory_not_empty_fails(fprime_test_api):
+    dir_name = "/tne"
+    file_name = "/tne/f.bin"
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.CreateDirectory",
+        [dir_name],
+        timeout=2,
+    )
+
+    with NamedTemporaryFile(mode="wb") as temp_file:
+        temp_file.write(b"x")
+        temp_file.flush()
+        fprime_test_api.uplink_file_and_await_completion(
+            temp_file.name, file_name, timeout=5
+        )
+
+    fprime_test_api.send_command(
+        "ReferenceDeployment.fileManager.RemoveDirectory",
+        [dir_name],
+    )
+    fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.DirectoryRemoveError",
+        timeout=2,
+    )
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.RemoveFile",
+        [file_name, True],
+        timeout=2,
+    )
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.RemoveDirectory",
+        [dir_name],
+        timeout=2,
+    )
