@@ -2,7 +2,6 @@
 These tests require that only one board to be connected to the PC. They should be run via `bft.sh`.
 """
 
-from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 
@@ -106,3 +105,32 @@ def test_file_uplink(fprime_test_api):
         fprime_test_api.uplink_file_and_await_completion(
             temp_file.name, destination, timeout=1
         )
+
+
+def test_file_size(fprime_test_api):
+    payload = b"file-size-check"
+    destination = "/sfs.bin"
+
+    with NamedTemporaryFile(mode="wb") as temp_file:
+        temp_file.write(payload)
+        temp_file.flush()
+        fprime_test_api.uplink_file_and_await_completion(
+            temp_file.name, destination, timeout=5
+        )
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.FileSize",
+        [destination],
+        timeout=2,
+    )
+    event = fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.FileSizeSucceeded",
+        timeout=2,
+    )
+    assert event.args[1].val == len(payload)
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.RemoveFile",
+        [destination, True],
+        timeout=2,
+    )
