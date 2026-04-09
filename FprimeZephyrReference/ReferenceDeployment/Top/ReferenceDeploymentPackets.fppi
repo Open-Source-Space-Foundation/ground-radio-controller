@@ -31,6 +31,11 @@ telemetry packets ReferenceDeploymentPackets {
     ReferenceDeployment.dataBufferManager.HiBuffs
     ReferenceDeployment.dataBufferManager.EmptyBuffs
     ReferenceDeployment.dataBufferManager.TotalBuffs
+    ReferenceDeployment.fileManager.CommandsExecuted
+    ReferenceDeployment.fileManager.Errors
+    ReferenceDeployment.fileUplink.PacketsReceived
+    ReferenceDeployment.fileUplink.FilesReceived
+    ReferenceDeployment.fileUplink.Warnings
   }
 
   packet UhfRadio id 6 group 2 {

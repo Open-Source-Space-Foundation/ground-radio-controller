@@ -1,5 +1,5 @@
 """
-These tests require that only one board to be connected to the PC. They should be run via `bft.sh`.
+These tests require that only one board be connected to the PC. They should be run via `bft.sh`.
 """
 
 

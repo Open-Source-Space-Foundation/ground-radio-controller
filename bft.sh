@@ -4,12 +4,23 @@
 
 set -euo pipefail
 
-if [[ $# -ne 1 ]] || [[ ! "$1" =~ ^[12]$ ]]; then
-	echo "Usage: $0 {1|2}" >&2
-	exit 1
+if [[ $# -lt 1 ]] || [[ $# -gt 2 ]] || [[ ! "$1" =~ ^[12]$ ]]; then
+    echo "Usage: $0 {1|2} [all|main|fs]" >&2
+    exit 1
 fi
 
 NUM_BOARDS="$1"
+SUITE="${2:-all}"
+
+if [[ "$NUM_BOARDS" -eq 2 ]] && [[ $# -eq 2 ]]; then
+    echo "Usage: $0 2" >&2
+    exit 1
+fi
+
+if [[ "$NUM_BOARDS" -eq 1 ]] && [[ ! "$SUITE" =~ ^(all|main|fs)$ ]]; then
+    echo "Usage: $0 1 [all|main|fs]" >&2
+    exit 1
+fi
 
 source testconfig
 BOARD_ONE_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_ONE-if00"
@@ -68,7 +79,17 @@ TRAP_MSG=
 
 # Run appropriate test based on board configuration
 if [[ "$NUM_BOARDS" -eq 1 ]]; then
-	pytest --data-port-one="$BOARD_ONE_DATA_PORT" test/int/one_board_test.py
+    case "$SUITE" in
+        main)
+            pytest --data-port-one="$BOARD_ONE_DATA_PORT" test/one-board/main_test.py
+            ;;
+        fs)
+            pytest --data-port-one="$BOARD_ONE_DATA_PORT" test/one-board/fs_test.py
+            ;;
+        all)
+            pytest --data-port-one="$BOARD_ONE_DATA_PORT" test/one-board
+            ;;
+    esac
 else
-	pytest --data-port-one="$BOARD_ONE_DATA_PORT" --data-port-two="$BOARD_TWO_DATA_PORT" test/int/two_board_test.py
+    pytest --data-port-one="$BOARD_ONE_DATA_PORT" --data-port-two="$BOARD_TWO_DATA_PORT" test/two-board/two_board_test.py
 fi

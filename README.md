@@ -32,8 +32,12 @@ $(find -name diffconfig) $(find -name before) $(find -name after)
 
 # Workflow
 
-I wrote `bft.sh` to speed the red-green-refactor loop. Pass it `1` or `2` for
-whether you want to run one-board tests or two-board tests.
+I wrote `bft.sh` to speed the red-green-refactor loop.
+
+- `./bft.sh 1` runs all one-board tests
+- `./bft.sh 1 main` runs one-board main tests only
+- `./bft.sh 1 fs` runs one-board filesystem tests only
+- `./bft.sh 2` runs two-board tests
 
 ## Test Config
 
