@@ -23,6 +23,10 @@ There are three submodules, `lib/fprime`, `lib/fprime-zephyr`, and
 `lib/zephyr-workspace/zephyr`. You are not to edit code in any of them except
 to add logging statements which will later be removed.
 
-When you are writing unit tests, keep them *as concise as possible*. Each test
-should clean up after itself, so that every test can assume a clean workspace.
-No test should EVER be skipped.
+When you are writing tests:
+- Keep them *as concise as possible*
+- Each test should clean up after itself so that every test can assume a clean
+  workspace.
+- No test should EVER be skipped.
+- Each test should only test ONE THING. And do the minimal amount to test that
+  one thing.
