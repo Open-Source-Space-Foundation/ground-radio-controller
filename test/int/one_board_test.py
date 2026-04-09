@@ -313,3 +313,14 @@ def test_remove_file_success(fprime_test_api):
         "ReferenceDeployment.fileManager.FileSizeError",
         timeout=2,
     )
+
+
+def test_remove_file_missing_file_without_ignore_fails(fprime_test_api):
+    fprime_test_api.send_command(
+        "ReferenceDeployment.fileManager.RemoveFile",
+        ["/tmiss.bin", False],
+    )
+    fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.FileRemoveError",
+        timeout=2,
+    )
