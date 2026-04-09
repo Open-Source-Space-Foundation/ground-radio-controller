@@ -287,3 +287,29 @@ def test_remove_directory_not_empty_fails(fprime_test_api):
         [dir_name],
         timeout=2,
     )
+
+
+def test_remove_file_success(fprime_test_api):
+    file_name = "/trm.bin"
+
+    with NamedTemporaryFile(mode="wb") as temp_file:
+        temp_file.write(b"remove-me")
+        temp_file.flush()
+        fprime_test_api.uplink_file_and_await_completion(
+            temp_file.name, file_name, timeout=5
+        )
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.RemoveFile",
+        [file_name, False],
+        timeout=2,
+    )
+
+    fprime_test_api.send_command(
+        "ReferenceDeployment.fileManager.FileSize",
+        [file_name],
+    )
+    fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.FileSizeError",
+        timeout=2,
+    )
