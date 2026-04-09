@@ -40,3 +40,45 @@ def test_create_and_remove_directory(fprime_test_api):
         "ReferenceDeployment.fileManager.RemoveDirectorySucceeded",
         timeout=2,
     )
+
+
+def test_list_directory(fprime_test_api):
+    dir_name = "/test_dir"
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.CreateDirectory",
+        [dir_name],
+        timeout=2,
+    )
+    fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.CreateDirectorySucceeded",
+        timeout=2,
+    )
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.ListDirectory",
+        ["//"],
+        timeout=5,
+    )
+    fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.ListDirectoryStarted",
+        timeout=2,
+    )
+    listed_event = fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.DirectoryListingSubdir",
+        timeout=5,
+    )
+
+    # `.lower()` needed because fatfs is case-insensitive and returns uppercase names
+    assert listed_event.args[1].val.lower() == "test_dir"
+
+    fprime_test_api.assert_event(
+        "ReferenceDeployment.fileManager.ListDirectorySucceeded",
+        timeout=5,
+    )
+
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.fileManager.RemoveDirectory",
+        [dir_name],
+        timeout=2,
+    )
