@@ -2,6 +2,9 @@
 These tests require that only one board to be connected to the PC. They should be run via `bft.sh`.
 """
 
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+
 
 def test_send_noop(fprime_test_api):
     fprime_test_api.send_and_assert_command("CdhCore.cmdDisp.CMD_NO_OP", max_delay=0.1)
@@ -94,3 +97,12 @@ def test_remove_file_missing_file(fprime_test_api):
         "ReferenceDeployment.fileManager.FileRemoveError",
         timeout=2,
     )
+
+
+def test_file_uplink(fprime_test_api):
+    destination = "/test_uplink.bin"
+    with NamedTemporaryFile(mode="wb") as temp_file:
+        temp_file.write(b"file uplink integration test")
+        fprime_test_api.uplink_file_and_await_completion(
+            temp_file.name, destination, timeout=1
+        )

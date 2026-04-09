@@ -53,6 +53,9 @@ enum { WARN = 3, FATAL = 5 };
 namespace ReferenceDeployment_fileManager {
 enum { WARN = 3, FATAL = 5 };
 }
+namespace ReferenceDeployment_fileUplink {
+enum { WARN = 3, FATAL = 5 };
+}
 }  // namespace PingEntries
 
 // Definitions are placed within a namespace named after the deployment

@@ -24,6 +24,7 @@ module ReferenceDeployment {
     instance rateGroup10Hz
     instance rateGroup1Hz
     instance fileManager
+    instance fileUplink
     instance rateGroupDriver
     instance timer
     instance controlComDriver
@@ -59,6 +60,10 @@ module ReferenceDeployment {
       # Router to Command Dispatcher
       ComCcsds.fprimeRouter.commandOut -> CdhCore.cmdDisp.seqCmdBuff
       CdhCore.cmdDisp.seqCmdStatus -> ComCcsds.fprimeRouter.cmdResponseIn
+
+      # Router <-> FileUplink
+      ComCcsds.fprimeRouter.fileOut -> fileUplink.bufferSendIn
+      fileUplink.bufferSendOut -> ComCcsds.fprimeRouter.fileBufferReturnIn
 
     }
 
