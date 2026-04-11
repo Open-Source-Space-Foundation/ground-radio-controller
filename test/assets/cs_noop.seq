@@ -1,0 +1,2 @@
+; Minimal sequence used for command sequencer integration testing
+R00:00:00 CdhCore.cmdDisp.CMD_NO_OP
