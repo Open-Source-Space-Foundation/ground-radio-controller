@@ -19,7 +19,7 @@ OTHER TROUBLESHOOTING.
 - Add a `k_sleep(K_MSEC(3000));` before `Os::init()` in
   `FprimeZephyrReference/ReferenceDeployment/Main.cpp` so that there is enough
   time to capture serial output
-- Run `./bft.sh 1` to reflash the board. This time, you will not get the
+- Run `./bft.sh 1 main` to reflash the board. This time, you will not get the
   timeout error. You will get some other errors instead. IGNORE THEM
   COMPLETELY AND CONTINUE TROUBLESHOOTING THE CRASH. THE BOARD IS STILL
   CRASHING, ONLY LATER. ALL THOSE OTHER ERRORS ARE MEANINGLESS.
