@@ -12,6 +12,9 @@ a button on each board before it is flashed, so be sure that when you run it,
 the script is visible to the user so he knows which board to press the button
 on. But never decide to not run the tests since user help is required.
 
+The filesystem tests take a long time to run, so avoid running them regularly.
+Just run them once everything else is working as expected.
+
 It is possible that only one board is connected, so generally prefer to run
 only the one-board tests.
 
