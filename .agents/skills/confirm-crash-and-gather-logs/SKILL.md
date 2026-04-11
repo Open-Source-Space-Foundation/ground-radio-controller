@@ -11,10 +11,14 @@ Use the skill when you see a timeout when flashing the board. The cause is
 probably that the board is encountering a fatal error and crashing on boot
 after the last change.
 
+## INVOKE A SUBAGENT
+
+The below troubleshooting procedure should be passed to a subagent. DO NOT
+ATTEMPT TO CARRY IT OUT YOURSELF. It is too easy to get distracted.
+
 ## The Procedure
 
-When this happens, execute the following instructions exactly BEFORE DOING ANY
-OTHER TROUBLESHOOTING.
+Follow the below procedure exactly.
 
 - Add a `k_sleep(K_MSEC(3000));` before `Os::init()` in
   `FprimeZephyrReference/ReferenceDeployment/Main.cpp` so that there is enough
@@ -32,7 +36,13 @@ OTHER TROUBLESHOOTING.
   /dev/ttyACM0 && cat /dev/ttyACM0`
 - The output should have an indication of a fatal error. Record it.
 - Remove the `k_sleep`
-- Continue what you were doing, now with the knowledge of the cause of the
-  crash.
+- Report the captured message. If any of the above steps doesn't go as
+  expected, explain why.
+- Exit. Do not try to troubleshoot any further.
 
+
+## Finally
+
+Continue what you were doing, now with the knowledge of the cause of the
+crash.
 
