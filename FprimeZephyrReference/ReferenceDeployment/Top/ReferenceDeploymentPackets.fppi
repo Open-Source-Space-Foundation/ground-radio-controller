@@ -38,6 +38,14 @@ telemetry packets ReferenceDeploymentPackets {
     ReferenceDeployment.fileUplink.Warnings
   }
 
+  packet Sequencer id 5 group 2 {
+    ReferenceDeployment.cmdSeq.CS_LoadCommands
+    ReferenceDeployment.cmdSeq.CS_CancelCommands
+    ReferenceDeployment.cmdSeq.CS_Errors
+    ReferenceDeployment.cmdSeq.CS_CommandsExecuted
+    ReferenceDeployment.cmdSeq.CS_SequencesCompleted
+  }
+
   packet UhfRadio id 6 group 2 {
     ReferenceDeployment.uhf.BytesReceived
     ReferenceDeployment.uhf.BytesSent
@@ -45,7 +53,7 @@ telemetry packets ReferenceDeploymentPackets {
     ReferenceDeployment.uhf.LastSnr
   }
 
-  packet Version id 5 group 3 {
+  packet Version id 7 group 3 {
     CdhCore.version.FrameworkVersion
     CdhCore.version.ProjectVersion
     CdhCore.version.LibraryVersion01
