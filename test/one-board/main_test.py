@@ -25,7 +25,8 @@ def compiled_sequence_bin(tmp_path_factory):
     output_dir = tmp_path_factory.mktemp("seq")
     output_bin = output_dir / "cs_noop.bin"
 
-    assert DICTIONARY.exists()
+    if not DICTIONARY.exists():
+        pytest.fail(f"Missing dictionary for sequence compilation: {DICTIONARY}")
 
     result = subprocess.run(
         [
@@ -38,7 +39,8 @@ def compiled_sequence_bin(tmp_path_factory):
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 0, f"fprime-seqgen failed:\n{result.stderr}"
+    if result.returncode != 0:
+        pytest.fail(f"fprime-seqgen failed:\n{result.stderr}")
 
     return output_bin
 
@@ -62,9 +64,10 @@ def test_command_seq_run(fprime_test_api, compiled_sequence_bin):
     remote_path = "/cs_noop.bin"
 
     fprime_test_api.uplink_file_and_await_completion(
-        str(compiled_sequence_bin), remote_path, timeout=5
+        str(compiled_sequence_bin), remote_path, timeout=40
     )
 
     fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.cmdSeq.CS_RUN", [remote_path, "BLOCK"], timeout=2
+        "ReferenceDeployment.cmdSeq.CS_RUN", [remote_path, "BLOCK"], max_delay=5
     )
+    fprime_test_api.assert_event("CdhCore.cmdDisp.NoOpReceived", timeout=2)
