@@ -46,6 +46,11 @@ module ReferenceDeployment {
     stack size Default.STACK_SIZE \
     priority 6
 
+  instance cmdSeq: Svc.CmdSequencer base id 0x10005000 \
+    queue size 20 \
+    stack size Default.STACK_SIZE \
+    priority 7
+
 
   # ----------------------------------------------------------------------
   # Queued component instances

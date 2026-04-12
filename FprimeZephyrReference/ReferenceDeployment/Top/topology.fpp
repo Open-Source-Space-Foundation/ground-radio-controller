@@ -25,6 +25,7 @@ module ReferenceDeployment {
     instance rateGroup1Hz
     instance fileManager
     instance fileUplink
+    instance cmdSeq
     instance rateGroupDriver
     instance timer
     instance controlComDriver
@@ -98,6 +99,12 @@ module ReferenceDeployment {
       rateGroup1Hz.RateGroupMemberOut[3] -> CdhCore.tlmSend.Run
       rateGroup1Hz.RateGroupMemberOut[4] -> ComCcsds.aggregator.timeout
       rateGroup1Hz.RateGroupMemberOut[5] -> CdhCore.cmdDisp.run
+      rateGroup1Hz.RateGroupMemberOut[6] -> cmdSeq.schedIn
+    }
+
+    connections CmdSeq {
+      cmdSeq.comCmdOut -> CdhCore.cmdDisp.seqCmdBuff[1]
+      CdhCore.cmdDisp.seqCmdStatus[1] -> cmdSeq.cmdResponseIn
     }
 
     connections ReferenceDeployment {
