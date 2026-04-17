@@ -25,7 +25,35 @@ telemetry packets ReferenceDeploymentPackets {
     CdhCore.tlmSend.SendLevel
   }
 
-  packet Version id 4 group 3 {
+  packet Other id 4 group 2 {
+    ReferenceDeployment.dataBufferManager.NoBuffs
+    ReferenceDeployment.dataBufferManager.CurrBuffs
+    ReferenceDeployment.dataBufferManager.HiBuffs
+    ReferenceDeployment.dataBufferManager.EmptyBuffs
+    ReferenceDeployment.dataBufferManager.TotalBuffs
+    ReferenceDeployment.fileManager.CommandsExecuted
+    ReferenceDeployment.fileManager.Errors
+    ReferenceDeployment.fileUplink.PacketsReceived
+    ReferenceDeployment.fileUplink.FilesReceived
+    ReferenceDeployment.fileUplink.Warnings
+  }
+
+  packet Sequencer id 5 group 2 {
+    ReferenceDeployment.cmdSeq.CS_LoadCommands
+    ReferenceDeployment.cmdSeq.CS_CancelCommands
+    ReferenceDeployment.cmdSeq.CS_Errors
+    ReferenceDeployment.cmdSeq.CS_CommandsExecuted
+    ReferenceDeployment.cmdSeq.CS_SequencesCompleted
+  }
+
+  packet UhfRadio id 6 group 2 {
+    ReferenceDeployment.uhf.BytesReceived
+    ReferenceDeployment.uhf.BytesSent
+    ReferenceDeployment.uhf.LastRssi
+    ReferenceDeployment.uhf.LastSnr
+  }
+
+  packet Version id 7 group 3 {
     CdhCore.version.FrameworkVersion
     CdhCore.version.ProjectVersion
     CdhCore.version.LibraryVersion01

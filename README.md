@@ -1,8 +1,12 @@
+# Formatting
+
 Configure auto-formatting pre-commit with:
 
 ```
 git config core.hooksPath githooks
 ```
+
+# Zephyr Menuconfig
 
 I have found `menuconfig` to be helpful for exploring config options:
 
@@ -26,3 +30,32 @@ The workflow for seeing how to change `prj.conf` looks like this:
 $(find -name diffconfig) $(find -name before) $(find -name after)
 ```
 
+# Workflow
+
+I wrote `bft.sh` to speed the red-green-refactor loop.
+
+- `./bft.sh 1` runs all one-board tests
+- `./bft.sh 1 main` runs one-board main tests only
+- `./bft.sh 1 fs` runs one-board filesystem tests only
+- `./bft.sh 2` runs two-board tests
+
+## Test Config
+
+You must create a file `testconfig` in the project root with the contents:
+
+```
+BOARD_ONE="7B6B2CDF25CBB9E0"
+BOARD_TWO="2CCD5C8E0DC35550"
+```
+
+Except replace those two hex strings with the MCU ids which I got this way:
+
+```
+$ ls /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_2CCD5C8E0DC35550-if00
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_2CCD5C8E0DC35550-if02
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_7B6B2CDF25CBB9E0-if00
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_7B6B2CDF25CBB9E0-if02
+```
+
+This controls which board is the primary and which is the secondary for tests.

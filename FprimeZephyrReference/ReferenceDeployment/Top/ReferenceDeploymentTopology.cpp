@@ -49,6 +49,8 @@ void configureTopology() {
     // Rate groups require context arrays.
     rateGroup10Hz.configure(rateGroup10HzContext, FW_NUM_ARRAY_ELEMENTS(rateGroup10HzContext));
     rateGroup1Hz.configure(rateGroup1HzContext, FW_NUM_ARRAY_ELEMENTS(rateGroup1HzContext));
+    // Allocate sequence buffer (5KB is sufficient for typical sequences)
+    cmdSeq.allocateBuffer(0, mallocator, 5 * 1024);
 }
 
 // Public functions for use in main program are namespaced with deployment name ReferenceDeployment
@@ -75,6 +77,8 @@ void setupTopology(const TopologyState& state) {
     controlComDriver.configure(state.controlUartDevice, state.controlUartBaudRate);
 
     dataComDriver.configure(state.dataUartDevice, state.dataUartBaudRate);
+
+    uhf.start(state.loraDevice, Zephyr::TransmitState::ENABLED);
 }
 
 void startRateGroups() {
@@ -93,6 +97,7 @@ void teardownTopology(const TopologyState& state) {
     // Autocoded (active component) task clean-up. Functions provided by topology autocoder.
     stopTasks(state);
     freeThreads(state);
+    cmdSeq.deallocateBuffer(mallocator);
     tearDownComponents(state);
 }
 };  // namespace ReferenceDeployment

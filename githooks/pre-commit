@@ -1,37 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-## C/CPP FILES
-
-if ! command -v clang-format >/dev/null 2>&1; then
-  echo "pre-commit: clang-format not found in PATH" >&2
+die() {
+  echo "pre-commit: $*" >&2
   exit 1
-fi
+}
 
-mapfile -d '' files < <(
+command -v clang-format >/dev/null 2>&1 || die "clang-format not found in PATH"
+command -v ruff >/dev/null 2>&1 || die "ruff not found in PATH"
+
+check_not_partially_staged() {
+  local f="$1"
+
+  if ! git diff --cached --quiet -- "$f" && ! git diff --quiet -- "$f"; then
+    die "$f has both staged and unstaged changes; commit or stash the unstaged changes first"
+  fi
+}
+
+mapfile -d '' c_files < <(
   git diff --cached --name-only --diff-filter=ACMR -z -- \
     '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx'
 )
 
-for f in "${files[@]}"; do
+for f in "${c_files[@]}"; do
+  check_not_partially_staged "$f"
   clang-format -i "$f"
-  git add "$f"
+  git add -- "$f"
 done
 
-## PYTHON FILES
-
-if ! command -v ruff >/dev/null 2>&1; then
-  echo "pre-commit: ruff not found in PATH" >&2
-  exit 1
-fi
-
-mapfile -d '' files < <(
+mapfile -d '' py_files < <(
   git diff --cached --name-only --diff-filter=ACMR -z -- \
     '*.py' '*.pyi'
 )
 
-for f in "${files[@]}"; do
+for f in "${py_files[@]}"; do
+  check_not_partially_staged "$f"
   ruff format "$f"
-  git add "$f"
+  git add -- "$f"
 done
-

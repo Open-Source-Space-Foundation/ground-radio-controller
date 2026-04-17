@@ -16,14 +16,13 @@
 #include "Svc/Subtopologies/CdhCore/SubtopologyTopologyDefs.hpp"
 #include "Svc/Subtopologies/ComCcsds/SubtopologyTopologyDefs.hpp"
 
-//ComCcsds Enum Includes
+// ComCcsds Enum Includes
 #include "Svc/Subtopologies/ComCcsds/Ports_ComPacketQueueEnumAc.hpp"
 #include "Svc/Subtopologies/ComCcsds/Ports_ComBufferQueueEnumAc.hpp"
 
 // Include autocoded FPP constants
 #include "FprimeZephyrReference/ReferenceDeployment/Top/FppConstantsAc.hpp"
 #include <zephyr/drivers/uart.h>
-
 
 /**
  * \brief required ping constants
@@ -51,6 +50,18 @@ enum { WARN = 3, FATAL = 5 };
 namespace ReferenceDeployment_rateGroup1Hz {
 enum { WARN = 3, FATAL = 5 };
 }
+namespace ReferenceDeployment_prmDb {
+enum { WARN = 3, FATAL = 5 };
+}
+namespace ReferenceDeployment_fileManager {
+enum { WARN = 3, FATAL = 5 };
+}
+namespace ReferenceDeployment_fileUplink {
+enum { WARN = 3, FATAL = 5 };
+}
+namespace ReferenceDeployment_cmdSeq {
+enum { WARN = 3, FATAL = 5 };
+}
 }  // namespace PingEntries
 
 // Definitions are placed within a namespace named after the deployment
@@ -66,6 +77,7 @@ namespace ReferenceDeployment {
 struct TopologyState {
     const device* controlUartDevice;      //!< UART device path for control
     const device* dataUartDevice;         //!< UART device path for data
+    const device* loraDevice;             //!< LoRa device for UHF communication
     U32 controlUartBaudRate;              //!< Baud rate for UART control
     U32 dataUartBaudRate;                 //!< Baud rate for UART data
     CdhCore::SubtopologyState cdhCore;    //!< Subtopology state for CdhCore
