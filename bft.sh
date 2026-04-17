@@ -23,12 +23,12 @@ if [[ "$NUM_BOARDS" -eq 1 ]] && [[ ! "$SUITE" =~ ^(all|main|fs)$ ]]; then
 fi
 
 source testconfig
-BOARD_ONE_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_ONE-if00"
-BOARD_ONE_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_ONE-if02"
+BOARD_ONE_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_ONE-if00"
+BOARD_ONE_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_ONE-if02"
 
 if [[ "$NUM_BOARDS" -eq 2 ]]; then
-	BOARD_TWO_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_TWO-if00"
-	BOARD_TWO_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_$BOARD_TWO-if02"
+	BOARD_TWO_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_TWO-if00"
+	BOARD_TWO_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_TWO-if02"
 fi
 
 fprime-util build

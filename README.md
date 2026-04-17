@@ -51,11 +51,11 @@ BOARD_TWO="2CCD5C8E0DC35550"
 Except replace those two hex strings with the MCU ids which I got this way:
 
 ```
-$ ls /dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_
-/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_2CCD5C8E0DC35550-if00
-/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_2CCD5C8E0DC35550-if02
-/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_7B6B2CDF25CBB9E0-if00
-/dev/serial/by-id/usb-F_Prime_Pomona_Ground_Station_7B6B2CDF25CBB9E0-if02
+$ ls /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_2CCD5C8E0DC35550-if00
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_2CCD5C8E0DC35550-if02
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_7B6B2CDF25CBB9E0-if00
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_7B6B2CDF25CBB9E0-if02
 ```
 
 This controls which board is the primary and which is the secondary for tests.
