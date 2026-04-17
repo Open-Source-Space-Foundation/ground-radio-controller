@@ -59,7 +59,7 @@ add_custom_target(program-board
           -s "${RPI_OPENOCD_DIR}/scripts"
           -c "set ELF \"$<TARGET_FILE:zephyr_final>\""
           -f "${PROGRAM_OPENOCD_CFG}"
-  DEPENDS rpi-openocd zephyr_final
+  DEPENDS rpi-openocd
   USES_TERMINAL
   VERBATIM
 )

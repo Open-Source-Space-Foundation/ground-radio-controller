@@ -22,25 +22,30 @@ if [[ "$NUM_BOARDS" -eq 1 ]] && [[ ! "$SUITE" =~ ^(all|main|fs)$ ]]; then
     exit 1
 fi
 
-source testconfig
+source ./testconfig
 BOARD_ONE_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_ONE-if00"
 BOARD_ONE_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_ONE-if02"
+PROBE_ONE="${PROBE_ONE:-}"
 
 if [[ "$NUM_BOARDS" -eq 2 ]]; then
-	BOARD_TWO_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_TWO-if00"
-	BOARD_TWO_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_TWO-if02"
+    BOARD_TWO_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_TWO-if00"
+    BOARD_TWO_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_TWO-if02"
+    PROBE_TWO="${PROBE_TWO:-}"
 fi
 
-fprime-util build
+fprime-util build --target zephyr_final
 
 function flash() {
     local BOARD_ID="$1"
+    local DEBUG_PROBE_SERIAL="$2"
 
-    # PENDING DEBUG PROBE CONNECTOR ON NEXT FCB REVISION (and changes on `rpi-add-ocd` branch)
-    # fprime-util build --target program-board
+    if [[ -n "$DEBUG_PROBE_SERIAL" ]]; then
+        echo "Flashing $BOARD_ID via debug probe $DEBUG_PROBE_SERIAL"
+        OPENOCD_ADAPTER_SERIAL="$DEBUG_PROBE_SERIAL" fprime-util build --target program-board
+        return
+    fi
 
-    ## REMOVE BEGINNING HERE
-    echo "Waiting for BOOTSEL on $BOARD_ID (remove once we get the debug probe connector on the next FCB revision)"
+    echo "Waiting for BOOTSEL on $BOARD_ID"
 
     DEV="/dev/disk/by-label/RP2350"
     until [ -e "$DEV" ]; do :; done
@@ -49,33 +54,62 @@ function flash() {
     echo "Got a BOOTSEL!"
 
     cp ./build-artifacts/zephyr.uf2 "$MOUNTPOINT"
-    ## REMOVE ENDING HERE
 }
 
-flash "$BOARD_ONE"
+function reap_old_gds() {
+    pkill -f fprime-gds || true
+    rm -f /tmp/fprime-server-in /tmp/fprime-server-out
+
+    timeout 5 bash -c "until ! lsof $BOARD_ONE_CONTROL_PORT >/dev/null 2>&1; do sleep 0.1; done"
+}
+
+function print_gds_startup_log() {
+    local LOG_PATH="$1"
+
+    if [[ -s "$LOG_PATH" ]]; then
+        echo "GDS startup output:" >&2
+        cat "$LOG_PATH" >&2
+    fi
+}
+
+flash "$BOARD_ONE" "$PROBE_ONE"
 trap "echo 'Timed out waiting for USB serial port after flash $BOARD_ONE' 1>&2" EXIT
-timeout 5 sh -c "until [ -e $BOARD_ONE_CONTROL_PORT ]; do :; done"
+timeout 5 bash -c "until [[ -e $BOARD_ONE_CONTROL_PORT && -e $BOARD_ONE_DATA_PORT ]]; do sleep 0.1; done"
 
 if [[ "$NUM_BOARDS" -eq 2 ]]; then
-    flash "$BOARD_TWO"
+    flash "$BOARD_TWO" "$PROBE_TWO"
     trap "echo 'Timed out waiting for USB serial port after flash $BOARD_TWO' 1>&2" EXIT
-    timeout 5 sh -c "until [ -e $BOARD_TWO_CONTROL_PORT ]; do :; done"
+    timeout 5 bash -c "until [[ -e $BOARD_TWO_CONTROL_PORT && -e $BOARD_TWO_DATA_PORT ]]; do sleep 0.1; done"
 fi
 
 trap - EXIT
 
-fprime-gds --uart-device $(realpath -e "$BOARD_ONE_CONTROL_PORT") --gui none &>/dev/null &
+reap_old_gds
+
+# Serial port symlinks seem to appear and disappear briefly after device is first
+# flashed. Can't find a good event to block on to be sure they're stable.
+# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
+# `sleep 1` and forget about it.
+
+sleep 1
+
+GDS_LOG=$(mktemp)
+
+fprime-gds \
+    --uart-device "$BOARD_ONE_CONTROL_PORT" \
+    --uart-skip-port-check \
+    --gui none \
+    >"$GDS_LOG" 2>&1 &
 
 # Kill children on exit to clean up GDS
 # Also zero out SIGTERM handler to avoid "Terminated" message after trap handler sends bash SIGTERM
 # Source - https://stackoverflow.com/a/2173421
-TRAP_MSG="Timed out launching GDS\n"
-trap "printf \"\$TRAP_MSG\" 1>&2 && trap '' SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
+trap "echo 'Timed out launching GDS' 1>&2; print_gds_startup_log \"$GDS_LOG\"; rm -f \"$GDS_LOG\"; trap '' SIGTERM; kill -- -$$" SIGINT SIGTERM EXIT
 
-timeout 5 sh -c "until lsof -U 2>/dev/null | grep -q /tmp/fprime-server-out; do :; done"
+timeout 5 bash -c 'until [ -e /tmp/fprime-server-out ]; do sleep 0.1; done'
 
-# Unset TRAP_MSG as timeout has passed, but keep trap killing children on exit.
-TRAP_MSG=
+trap "rm -f \"$GDS_LOG\"; trap '' SIGTERM; kill -- -$$ 2>/dev/null;" SIGINT SIGTERM EXIT
+
 
 # Run appropriate test based on board configuration
 if [[ "$NUM_BOARDS" -eq 1 ]]; then
