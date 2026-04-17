@@ -6,7 +6,7 @@ mkdir -p "$dest"
 cd "$dest"
 
 # Optional: skip if already extracted (no stamp files)
-if [ -x "./openocd/bin/openocd" ]; then
+if [ -x "./openocd" ]; then
   echo "rpi-openocd already present in: $dest"
   exit 0
 fi
@@ -20,4 +20,3 @@ url="$(jq -r --arg re "$pattern" '.assets[] | select(.name|test($re)) | .browser
 wget -q -O "openocd.tar.gz" "$url"
 tar xzf "openocd.tar.gz"
 rm "openocd.tar.gz"
-

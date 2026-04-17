@@ -57,10 +57,9 @@ set(PROGRAM_OPENOCD_CFG "${CMAKE_SOURCE_DIR}/openocd/program.cfg")
 add_custom_target(program-board
   COMMAND "${RPI_OPENOCD_BIN}"
           -s "${RPI_OPENOCD_DIR}/scripts"
-          -c "set ELF \"${CMAKE_SOURCE_DIR}/build-artifacts/zephyr.elf\"" # TODO don't hard-code this
+          -c "set ELF \"$<TARGET_FILE:zephyr_final>\""
           -f "${PROGRAM_OPENOCD_CFG}"
-  DEPENDS rpi-openocd
+  DEPENDS rpi-openocd zephyr_final
   USES_TERMINAL
   VERBATIM
 )
-
