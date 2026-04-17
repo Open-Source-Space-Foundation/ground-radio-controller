@@ -44,33 +44,29 @@ I wrote `bft.sh` to speed the red-green-refactor loop.
 You must create a file `testconfig` in the project root with the contents:
 
 ```
-BOARD_ONE="7B6B2CDF25CBB9E0"
-BOARD_TWO="2CCD5C8E0DC35550"
-PROBE_ONE="e6616408432b6f2d"
-PROBE_TWO="e6616408434c1a2e"
+BOARD_ONE="C1C760D69E02825F"
+BOARD_TWO="291E95CA969699F2"
+PROBE_ONE="E6647C74033F7030"
+PROBE_TWO="E6647C7403481E2F"
 ```
 
-Except replace those two hex strings with the MCU ids which I got this way:
+You can get the MCU ids this way:
 
 ```
 $ ls /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_*
-/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_2CCD5C8E0DC35550-if00
-/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_2CCD5C8E0DC35550-if02
-/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_7B6B2CDF25CBB9E0-if00
-/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_7B6B2CDF25CBB9E0-if02
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_291E95CA969699F2-if00
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_291E95CA969699F2-if02
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_C1C760D69E02825F-if00
+/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_C1C760D69E02825F-if02
 ```
 
-And replace the probe serials with the debug probe ids, which you can get this
-way:
+You can get the debug probe ids this way:
 
 ```
 $ ls /dev/serial/by-id/usb-Raspberry_Pi_Debug_Probe__CMSIS-DAP__*
 /dev/serial/by-id/usb-Raspberry_Pi_Debug_Probe__CMSIS-DAP__E6647C74033F7030-if01
 /dev/serial/by-id/usb-Raspberry_Pi_Debug_Probe__CMSIS-DAP__E6647C7403481E2F-if01
 ```
-
-So in that example, `PROBE_ONE="E6647C74033F7030"` and
-`PROBE_TWO="E6647C7403481E2F"`.
 
 This controls which board is the primary and which is the secondary for tests.
 The `PROBE_ONE` and `PROBE_TWO` variables are optional. When set, `./bft.sh`
