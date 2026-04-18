@@ -32,6 +32,8 @@ Follow the below procedure exactly.
   and out as the device resets.
 - Identify the serial port dropping in and out which has the lower index (e.g.
   `ttyACM0` rather than `ttyACM1`).
+- Look for any other processes (e.g. running GDS) which might read the port as
+  well. Kill any offending processes.
 - Capture the output on the lower index port with e.g. `udevadm wait
   /dev/ttyACM0 && cat /dev/ttyACM0`
 - The output should have an indication of a fatal error. Record it.
