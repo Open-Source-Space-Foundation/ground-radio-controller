@@ -50,6 +50,14 @@ def test_send_noop(fprime_test_api):
     assert fprime_test_api.get_command_test_history().size() == 1
 
 
+def test_set_center_freq(fprime_test_api):
+    fprime_test_api.send_and_assert_command(
+        "ReferenceDeployment.uhf.SET_FREQ",
+        [437400000],
+        max_delay=2,
+    )
+
+
 def test_open_data_port(data_port_one):
     assert data_port_one.is_open
 

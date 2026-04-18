@@ -4,7 +4,7 @@
 
 #include <zephyr/drivers/lora.h>
 namespace LoRaConfig {
-const U32 FREQUENCY = 437400000;               //!< LoRa frequency in Hz
+const U32 DEFAULT_FREQ = 437400000;            //!< LoRa frequency in Hz
 lora_signal_bandwidth BANDWIDTH = BW_125_KHZ;  //!< LoRa bandwidth
 const I8 TX_POWER = 23;                        //!< LoRa transmission power in dBm
 const U16 PREAMBLE_LENGTH = 8;                 //!< LoRa preamble length
