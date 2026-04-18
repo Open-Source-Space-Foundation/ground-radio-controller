@@ -5,16 +5,16 @@ telemetry packets ReferenceDeploymentPackets {
     CdhCore.cmdDisp.CommandsDropped
     ComCcsds.comQueue.comQueueDepth
     ComCcsds.commsBufferManager.HiBuffs
-    ReferenceDeployment.rateGroup10Hz.RgMaxTime
-    ReferenceDeployment.rateGroup1Hz.RgMaxTime
+    rateGroup10Hz.RgMaxTime
+    rateGroup1Hz.RgMaxTime
   }
 
   packet HealthWarnings id 2 group 1 {
     CdhCore.$health.PingLateWarnings
     ComCcsds.commsBufferManager.NoBuffs
     ComCcsds.commsBufferManager.EmptyBuffs
-    ReferenceDeployment.rateGroup10Hz.RgCycleSlips
-    ReferenceDeployment.rateGroup1Hz.RgCycleSlips
+    rateGroup10Hz.RgCycleSlips
+    rateGroup1Hz.RgCycleSlips
   }
 
 
@@ -22,35 +22,34 @@ telemetry packets ReferenceDeploymentPackets {
     ComCcsds.commsBufferManager.TotalBuffs
     ComCcsds.commsBufferManager.CurrBuffs
     ComCcsds.comQueue.buffQueueDepth
-    CdhCore.tlmSend.SendLevel
   }
 
   packet Other id 4 group 2 {
-    ReferenceDeployment.dataBufferManager.NoBuffs
-    ReferenceDeployment.dataBufferManager.CurrBuffs
-    ReferenceDeployment.dataBufferManager.HiBuffs
-    ReferenceDeployment.dataBufferManager.EmptyBuffs
-    ReferenceDeployment.dataBufferManager.TotalBuffs
-    ReferenceDeployment.fileManager.CommandsExecuted
-    ReferenceDeployment.fileManager.Errors
-    ReferenceDeployment.fileUplink.PacketsReceived
-    ReferenceDeployment.fileUplink.FilesReceived
-    ReferenceDeployment.fileUplink.Warnings
+    dataBufferManager.NoBuffs
+    dataBufferManager.CurrBuffs
+    dataBufferManager.HiBuffs
+    dataBufferManager.EmptyBuffs
+    dataBufferManager.TotalBuffs
+    fileManager.CommandsExecuted
+    fileManager.Errors
+    fileUplink.PacketsReceived
+    fileUplink.FilesReceived
+    fileUplink.Warnings
   }
 
   packet Sequencer id 5 group 2 {
-    ReferenceDeployment.cmdSeq.CS_LoadCommands
-    ReferenceDeployment.cmdSeq.CS_CancelCommands
-    ReferenceDeployment.cmdSeq.CS_Errors
-    ReferenceDeployment.cmdSeq.CS_CommandsExecuted
-    ReferenceDeployment.cmdSeq.CS_SequencesCompleted
+    cmdSeq.CS_LoadCommands
+    cmdSeq.CS_CancelCommands
+    cmdSeq.CS_Errors
+    cmdSeq.CS_CommandsExecuted
+    cmdSeq.CS_SequencesCompleted
   }
 
   packet UhfRadio id 6 group 2 {
-    ReferenceDeployment.uhf.BytesReceived
-    ReferenceDeployment.uhf.BytesSent
-    ReferenceDeployment.uhf.LastRssi
-    ReferenceDeployment.uhf.LastSnr
+    uhf.BytesReceived
+    uhf.BytesSent
+    uhf.LastRssi
+    uhf.LastSnr
   }
 
   packet Version id 7 group 3 {
@@ -62,6 +61,8 @@ telemetry packets ReferenceDeploymentPackets {
 
 } omit {
   CdhCore.cmdDisp.CommandErrors
+  CdhCore.tlmSend.GroupConfigs
+  CdhCore.tlmSend.SectionEnabled
   # Only has one library, no custom versions
   CdhCore.version.LibraryVersion02
   CdhCore.version.LibraryVersion03
