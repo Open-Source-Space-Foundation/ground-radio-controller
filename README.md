@@ -72,3 +72,12 @@ This controls which board is the primary and which is the secondary for tests.
 The `PROBE_ONE` and `PROBE_TWO` variables are optional. When set, `./bft.sh`
 will flash that board through `openocd` and the `program-board` target. When
 unset, it falls back to the BOOTSEL/UF2 copy workflow.
+
+## Coding Agent Workflow
+
+I have got it set up so that you can throw an agent at the project and develop
+automatically. This is possible with hands-free flashing via the debug probe.
+
+Since I don't want to run an agent with full permissions on my personal
+account, I made a new `agent` user and put it in the `dialout` group for
+access to tty ports and `plugdev` for access to debug adapter.
