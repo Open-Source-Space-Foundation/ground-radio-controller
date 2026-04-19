@@ -46,7 +46,7 @@ def compiled_sequence_bin(tmp_path_factory):
 
 
 def test_send_noop(fprime_test_api):
-    fprime_test_api.send_and_assert_command("CdhCore.cmdDisp.CMD_NO_OP", max_delay=0.1)
+    fprime_test_api.send_and_assert_command("CdhCore.cmdDisp.CMD_NO_OP", timeout=1)
     assert fprime_test_api.get_command_test_history().size() == 1
 
 
@@ -54,7 +54,7 @@ def test_set_center_freq(fprime_test_api):
     fprime_test_api.send_and_assert_command(
         "ReferenceDeployment.uhf.SET_FREQ",
         [437400000],
-        max_delay=2,
+        timeout=2,
     )
 
 
@@ -75,6 +75,6 @@ def test_command_seq_run(fprime_test_api, compiled_sequence_bin):
     )
 
     fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.cmdSeq.CS_RUN", [remote_path, "BLOCK"], max_delay=5
+        "ReferenceDeployment.cmdSeq.CS_RUN", [remote_path, "BLOCK"], timeout=5
     )
     fprime_test_api.assert_event("CdhCore.cmdDisp.NoOpReceived", timeout=2)
