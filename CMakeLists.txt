@@ -34,6 +34,7 @@ add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/FprimeZephyrReference")
 
 set_target_properties(Svc_FatalHandler PROPERTIES EXCLUDE_FROM_ALL TRUE)
 set_target_properties(fprime-zephyr_Drv_ZephyrSpiDriver PROPERTIES EXCLUDE_FROM_ALL TRUE)
+set_target_properties(Svc_FileWorker_test_FileTester PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 
 ###
