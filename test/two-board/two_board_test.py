@@ -29,13 +29,13 @@ def test_link_breaks_after_mismatched_freq(
     fprime_test_api.send_and_assert_command(
         "ReferenceDeployment.uhf.SET_FREQ",
         [BASELINE_FREQUENCY_HZ],
-        max_delay=2,
+        timeout=2,
     )
     try:
         fprime_test_api.send_and_assert_command(
             "ReferenceDeployment.uhf.SET_FREQ",
             [FAIL_FREQUENCY_HZ],
-            max_delay=2,
+            timeout=2,
         )
         data_port_one.write(sent)
         data_port_one.flush()
@@ -47,7 +47,7 @@ def test_link_breaks_after_mismatched_freq(
         fprime_test_api.send_and_assert_command(
             "ReferenceDeployment.uhf.SET_FREQ",
             [BASELINE_FREQUENCY_HZ],
-            max_delay=2,
+            timeout=2,
         )
 
 
@@ -57,13 +57,13 @@ def test_link_survives_valid_freq_change(fprime_test_api, data_port_one, data_po
     fprime_test_api.send_and_assert_command(
         "ReferenceDeployment.uhf.SET_FREQ",
         [BASELINE_FREQUENCY_HZ],
-        max_delay=2,
+        timeout=2,
     )
     try:
         fprime_test_api.send_and_assert_command(
             "ReferenceDeployment.uhf.SET_FREQ",
             [PASS_FREQUENCY_HZ],
-            max_delay=2,
+            timeout=2,
         )
         data_port_one.write(sent)
         data_port_one.flush()
@@ -75,5 +75,5 @@ def test_link_survives_valid_freq_change(fprime_test_api, data_port_one, data_po
         fprime_test_api.send_and_assert_command(
             "ReferenceDeployment.uhf.SET_FREQ",
             [BASELINE_FREQUENCY_HZ],
-            max_delay=2,
+            timeout=2,
         )
