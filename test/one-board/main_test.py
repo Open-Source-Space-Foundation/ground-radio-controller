@@ -46,7 +46,7 @@ def compiled_sequence_bin(tmp_path_factory):
 
 
 def test_send_noop(fprime_test_api):
-    fprime_test_api.send_and_assert_command("CdhCore.cmdDisp.CMD_NO_OP", timeout=1)
+    fprime_test_api.send_and_assert_command("CdhCore.cmdDisp.CMD_NO_OP", timeout=2)
     assert fprime_test_api.get_command_test_history().size() == 1
 
 
@@ -71,7 +71,7 @@ def test_command_seq_run(fprime_test_api, compiled_sequence_bin):
     remote_path = "/cs_noop.bin"
 
     fprime_test_api.uplink_file_and_await_completion(
-        str(compiled_sequence_bin), remote_path, timeout=40
+        str(compiled_sequence_bin), remote_path, timeout=5
     )
 
     fprime_test_api.send_and_assert_command(
