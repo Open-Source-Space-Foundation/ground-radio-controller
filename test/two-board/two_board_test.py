@@ -4,8 +4,8 @@ also connected to the PC. Should be run via `bft.sh`.
 """
 
 BASELINE_FREQUENCY_HZ = 437400000
-PASS_FREQUENCY_HZ = 437400500
-FAIL_FREQUENCY_HZ = 915000000
+PASS_FREQUENCY_HZ = 437430000
+FAIL_FREQUENCY_HZ = 437435000
 
 
 def test_open_data_ports(data_port_one, data_port_two):
