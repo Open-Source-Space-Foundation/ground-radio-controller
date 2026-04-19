@@ -33,7 +33,8 @@ if [[ "$NUM_BOARDS" -eq 2 ]]; then
     PROBE_TWO="${PROBE_TWO:-}"
 fi
 
-fprime-util build --target zephyr_final
+# Build everything so zephyr.uf2 is up to date
+fprime-util build
 
 function flash() {
     local BOARD_ID="$1"
