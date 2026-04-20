@@ -34,6 +34,7 @@ Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{
 // Rate groups may supply a context token to each of the attached children whose purpose is set by the project. The
 // reference topology sets each token to zero as these contexts are unused in this project.
 U32 rateGroup10HzContext[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {getRateGroupPeriod(10)};
+U32 rateGroup100HzContext[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {getRateGroupPeriod(100)};
 U32 rateGroup1HzContext[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {getRateGroupPeriod(1)};
 
 /**
@@ -48,6 +49,7 @@ void configureTopology() {
     rateGroupDriver.configure(rateGroupDivisorsSet);
     // Rate groups require context arrays.
     rateGroup10Hz.configure(rateGroup10HzContext, FW_NUM_ARRAY_ELEMENTS(rateGroup10HzContext));
+    rateGroup100Hz.configure(rateGroup100HzContext, FW_NUM_ARRAY_ELEMENTS(rateGroup100HzContext));
     rateGroup1Hz.configure(rateGroup1HzContext, FW_NUM_ARRAY_ELEMENTS(rateGroup1HzContext));
     // Allocate sequence buffer (5KB is sufficient for typical sequences)
     cmdSeq.allocateBuffer(0, mallocator, 5 * 1024);

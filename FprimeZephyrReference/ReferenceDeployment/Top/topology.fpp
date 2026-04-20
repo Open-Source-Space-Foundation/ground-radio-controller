@@ -22,6 +22,7 @@ module ReferenceDeployment {
   # ----------------------------------------------------------------------
     instance chronoTime
     instance rateGroup10Hz
+    instance rateGroup100Hz
     instance rateGroup1Hz
     instance fileManager
     instance fileUplink
