@@ -55,6 +55,24 @@ def test_link_one_to_two_1024_bytes_one_byte_writes(data_port_one, data_port_two
     )
 
 
+def test_link_one_to_two_six_252_byte_packets(data_port_one, data_port_two):
+    chunk = bytes(range(252))
+    sent = chunk * 6
+
+    for _ in range(6):
+        assert data_port_one.write(chunk) == len(chunk)
+        data_port_one.flush()
+        # The Semtech LoRa calculator reports about 901.63 ms time on air for
+        # a 252-byte payload at SF8, 125 kHz, CR 4/5, so sleep 1 s to leave the
+        # radio enough time to finish each packet before sending the next one.
+        time.sleep(1.0)
+
+    received = data_port_two.read(len(sent))
+    assert received == sent, (
+        f"Expected {len(sent)} bytes from board two, received {len(received)}"
+    )
+
+
 def test_link_breaks_after_mismatched_freq(
     fprime_test_api, data_port_one, data_port_two
 ):
