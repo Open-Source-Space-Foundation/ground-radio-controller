@@ -76,14 +76,15 @@ function print_gds_startup_log() {
 flash "$BOARD_ONE" "$PROBE_ONE"
 trap "echo 'Timed out waiting for USB serial port after flash $BOARD_ONE' 1>&2" EXIT
 timeout 5 bash -c "until [[ -e $BOARD_ONE_CONTROL_PORT && -e $BOARD_ONE_DATA_PORT ]]; do sleep 0.1; done"
+trap - EXIT
 
 if [[ "$NUM_BOARDS" -eq 2 ]]; then
     flash "$BOARD_TWO" "$PROBE_TWO"
     trap "echo 'Timed out waiting for USB serial port after flash $BOARD_TWO' 1>&2" EXIT
     timeout 5 bash -c "until [[ -e $BOARD_TWO_CONTROL_PORT && -e $BOARD_TWO_DATA_PORT ]]; do sleep 0.1; done"
+    trap - EXIT
 fi
 
-trap - EXIT
 
 reap_old_gds
 
