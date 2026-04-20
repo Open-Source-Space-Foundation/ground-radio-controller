@@ -2,7 +2,7 @@ import pytest
 import serial
 
 
-SERIAL_READ_TIMEOUT_SECONDS = 5.0
+SERIAL_READ_TIMEOUT_SECONDS = 2.0
 
 
 def _open_data_port(port: str) -> serial.Serial:
