@@ -99,6 +99,7 @@ GDS_LOG=$(mktemp)
 fprime-gds \
     --uart-device "$BOARD_ONE_CONTROL_PORT" \
     --uart-skip-port-check \
+    --output-unframed-data unframed-data.log \
     --gui none \
     >"$GDS_LOG" 2>&1 &
 
