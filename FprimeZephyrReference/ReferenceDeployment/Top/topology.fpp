@@ -6,6 +6,7 @@ module ReferenceDeployment {
 
   enum Ports_RateGroups {
     rateGroup10Hz
+    rateGroup100Hz
     rateGroup1Hz
   }
 
@@ -113,9 +114,12 @@ module ReferenceDeployment {
 
       # High rate (10Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
-      rateGroup10Hz.RateGroupMemberOut[0] -> controlUartDriver.schedIn
-      rateGroup10Hz.RateGroupMemberOut[1] -> dataUartDriver.schedIn
-      rateGroup10Hz.RateGroupMemberOut[2] -> fileManager.schedIn
+      rateGroup10Hz.RateGroupMemberOut[0] -> fileManager.schedIn
+
+      # High rate (100Hz) rate group
+      rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup100Hz] -> rateGroup100Hz.CycleIn
+      rateGroup100Hz.RateGroupMemberOut[0] -> controlUartDriver.schedIn
+      rateGroup100Hz.RateGroupMemberOut[1] -> dataUartDriver.schedIn
 
       # Slow rate (1Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1Hz] -> rateGroup1Hz.CycleIn
