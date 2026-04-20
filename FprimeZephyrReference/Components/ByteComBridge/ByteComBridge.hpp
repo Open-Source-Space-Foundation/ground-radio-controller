@@ -25,6 +25,10 @@ class ByteComBridge final : public ByteComBridgeComponentBase {
     ~ByteComBridge();
 
   private:
+    bool m_byteStreamReady;
+    bool m_txReady;
+
+  private:
     // ----------------------------------------------------------------------
     // Handler implementations for typed input ports
     // ----------------------------------------------------------------------

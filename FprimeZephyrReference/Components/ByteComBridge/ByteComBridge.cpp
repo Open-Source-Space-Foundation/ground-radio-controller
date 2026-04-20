@@ -12,7 +12,8 @@ namespace Components {
 // Component construction and destruction
 // ----------------------------------------------------------------------
 
-ByteComBridge ::ByteComBridge(const char* const compName) : ByteComBridgeComponentBase(compName) {}
+ByteComBridge ::ByteComBridge(const char* const compName)
+    : ByteComBridgeComponentBase(compName), m_byteStreamReady(false), m_txReady(false) {}
 
 ByteComBridge ::~ByteComBridge() {}
 
@@ -21,23 +22,38 @@ ByteComBridge ::~ByteComBridge() {}
 // ----------------------------------------------------------------------
 
 void ByteComBridge ::byteStreamReady_handler(FwIndexType portNum) {
-    // No action needed
+    this->m_byteStreamReady = true;
 }
 
 void ByteComBridge ::byteStreamRecv_handler(FwIndexType portNum,
                                             Fw::Buffer& buffer,
                                             const Drv::ByteStreamStatus& status) {
-    if (status.e == Drv::ByteStreamStatus::OP_OK) {
-        ComCfg::FrameContext context;
-        this->comDataOut_out(0, buffer, context);
-    } else {
-        // No valid data; return buffer ownership immediately
+    if (status.e != Drv::ByteStreamStatus::OP_OK) {
         this->byteStreamRecvReturnOut_out(0, buffer);
+        return;
     }
+
+    if (!this->m_byteStreamReady) {
+        this->byteStreamRecvReturnOut_out(0, buffer);
+        return;
+    }
+
+    if (!this->m_txReady) {
+        this->log_WARNING_HI_ComNotReady();
+        this->byteStreamRecvReturnOut_out(0, buffer);
+        return;
+    }
+
+    this->m_txReady = false;
+    ComCfg::FrameContext context;
+    this->comDataOut_out(0, buffer, context);
 }
 
 void ByteComBridge ::comDataIn_handler(FwIndexType portNum, Fw::Buffer& data, const ComCfg::FrameContext& context) {
-    this->byteStreamSend_out(0, data);
+    const Drv::ByteStreamStatus status = this->byteStreamSend_out(0, data);
+    if (status.e != Drv::ByteStreamStatus::OP_OK) {
+        this->log_WARNING_HI_ByteStreamSendFailed(status);
+    }
     this->comDataReturnOut_out(0, data, context);
 }
 
@@ -48,7 +64,7 @@ void ByteComBridge ::comDataReturnIn_handler(FwIndexType portNum,
 }
 
 void ByteComBridge ::comStatusIn_handler(FwIndexType portNum, Fw::Success& condition) {
-    // No action needed
+    this->m_txReady = (condition.e == Fw::Success::SUCCESS);
 }
 
 }  // namespace Components

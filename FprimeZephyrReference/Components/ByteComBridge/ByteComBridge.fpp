@@ -26,6 +26,20 @@ module Components {
         @ Port to send back ownership of data received on byteStreamRecv port
         output port byteStreamRecvReturnOut: Fw.BufferSend
 
+        @ Event port
+        event port Log
+
+        @ Text event port
+        text event port LogText
+
+        @ Received byte-stream data before COM reported ready to transmit
+        event ComNotReady severity warning high format "Received byte-stream data before COM reported ready"
+
+        @ Sending COM-originated data to the byte-stream side failed
+        event ByteStreamSendFailed(
+            status: Drv.ByteStreamStatus @< Returned status from byteStreamSend
+        ) severity warning high format "Failed to send COM data to byte stream: {}"
+
 
         ##############################################################################
         #### Uncomment the following examples to start customizing your component ####
