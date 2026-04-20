@@ -3,6 +3,8 @@ These tests require another board be flashed with radio controller software and
 also connected to the PC. Should be run via `bft.sh`.
 """
 
+import time
+
 BASELINE_FREQUENCY_HZ = 437400000
 PASS_FREQUENCY_HZ = 437430000
 FAIL_FREQUENCY_HZ = 437435000
@@ -29,6 +31,19 @@ def test_link_one_to_two_single_252_byte_write(data_port_one, data_port_two):
 
     received = data_port_two.read(len(sent))
     assert received == sent, "Timed out waiting for 252-byte payload from board two"
+
+
+def test_link_one_to_two_1024_bytes_chunked_252_bytes(data_port_one, data_port_two):
+    sent = bytes(range(256)) * 4
+
+    for start in range(0, len(sent), 252):
+        chunk = sent[start : start + 252]
+        assert data_port_one.write(chunk) == len(chunk)
+        data_port_one.flush()
+        time.sleep(0.9)
+
+    received = data_port_two.read(len(sent))
+    assert received == sent, "Timed out waiting for 1024-byte payload from board two"
 
 
 def test_link_breaks_after_mismatched_freq(
