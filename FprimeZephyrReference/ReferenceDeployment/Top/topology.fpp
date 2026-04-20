@@ -5,8 +5,8 @@ module ReferenceDeployment {
   # ----------------------------------------------------------------------
 
   enum Ports_RateGroups {
-    rateGroup10Hz
     rateGroup100Hz
+    rateGroup10Hz
     rateGroup1Hz
   }
 
@@ -22,8 +22,8 @@ module ReferenceDeployment {
   # Instances used in the topology
   # ----------------------------------------------------------------------
     instance chronoTime
-    instance rateGroup10Hz
     instance rateGroup100Hz
+    instance rateGroup10Hz
     instance rateGroup1Hz
     instance fileManager
     instance fileUplink
@@ -112,14 +112,14 @@ module ReferenceDeployment {
       # timer to drive rate group
       timer.CycleOut -> rateGroupDriver.CycleIn
 
-      # High rate (10Hz) rate group
-      rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
-      rateGroup10Hz.RateGroupMemberOut[0] -> fileManager.schedIn
-
       # High rate (100Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup100Hz] -> rateGroup100Hz.CycleIn
       rateGroup100Hz.RateGroupMemberOut[0] -> controlUartDriver.schedIn
       rateGroup100Hz.RateGroupMemberOut[1] -> dataUartDriver.schedIn
+
+      # High rate (10Hz) rate group
+      rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
+      rateGroup10Hz.RateGroupMemberOut[0] -> fileManager.schedIn
 
       # Slow rate (1Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1Hz] -> rateGroup1Hz.CycleIn
