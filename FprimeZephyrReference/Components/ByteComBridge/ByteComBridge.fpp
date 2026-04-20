@@ -32,13 +32,21 @@ module Components {
         @ Text event port
         text event port LogText
 
-        @ Received byte-stream data before COM reported ready to transmit
-        event ComNotReady severity warning high format "Received byte-stream data before COM reported ready"
+        @ Received byte-stream data that does not fit in the internal TX queue
+        event ByteStreamBufferFull(
+            requested: U32 @< Bytes in the incoming byte-stream buffer
+            available: U32 @< Remaining free bytes in the internal TX queue
+        ) severity warning high format "Dropped byte-stream data; requested {} bytes but only {} bytes were free"
 
         @ Sending COM-originated data to the byte-stream side failed
         event ByteStreamSendFailed(
             status: Drv.ByteStreamStatus @< Returned status from byteStreamSend
         ) severity warning high format "Failed to send COM data to byte stream: {}"
+
+        @ COM reported that the last transmission was not successful
+        event ComStatusFailed(
+            status: Fw.Success @< Returned status from comStatusIn
+        ) severity warning high format "COM reported failed transmit status: {}"
 
 
         ##############################################################################

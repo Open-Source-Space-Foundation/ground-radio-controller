@@ -21,6 +21,16 @@ def test_link_one_to_two(data_port_one, data_port_two):
     assert received == sent, "Timed out waiting for data from board two"
 
 
+def test_link_one_to_two_single_252_byte_write(data_port_one, data_port_two):
+    sent = bytes(range(252))
+
+    assert data_port_one.write(sent) == len(sent)
+    data_port_one.flush()
+
+    received = data_port_two.read(len(sent))
+    assert received == sent, "Timed out waiting for 252-byte payload from board two"
+
+
 def test_link_breaks_after_mismatched_freq(
     fprime_test_api, data_port_one, data_port_two
 ):

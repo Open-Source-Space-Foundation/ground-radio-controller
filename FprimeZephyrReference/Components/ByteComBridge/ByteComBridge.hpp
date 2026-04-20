@@ -8,11 +8,15 @@
 #define Components_ByteComBridge_HPP
 
 #include "FprimeZephyrReference/Components/ByteComBridge/ByteComBridgeComponentAc.hpp"
+#include <Utils/Types/CircularBuffer.hpp>
 
 namespace Components {
 
 class ByteComBridge final : public ByteComBridgeComponentBase {
   public:
+    static constexpr FwSizeType COM_TX_FRAME_SIZE = 252;
+    static constexpr FwSizeType CIRCULAR_BUFFER_SIZE = 252;
+
     // ----------------------------------------------------------------------
     // Component construction and destruction
     // ----------------------------------------------------------------------
@@ -25,10 +29,16 @@ class ByteComBridge final : public ByteComBridgeComponentBase {
     ~ByteComBridge();
 
   private:
-    bool m_byteStreamReady;
-    bool m_txReady;
+    bool m_byteStreamDriverReady;
+    bool m_comTxReady;
+    U8 m_txCircularBufferStorage[CIRCULAR_BUFFER_SIZE];
+    Types::CircularBuffer m_txCircularBuffer;
+    U8 m_comFrameStorage[COM_TX_FRAME_SIZE];
 
   private:
+    void enqueueByteStreamData(const Fw::Buffer& buffer);
+    void trySendQueuedData();
+
     // ----------------------------------------------------------------------
     // Handler implementations for typed input ports
     // ----------------------------------------------------------------------
@@ -55,8 +65,8 @@ class ByteComBridge final : public ByteComBridgeComponentBase {
                                  const ComCfg::FrameContext& context) override;
 
     //! Handler implementation for comStatusIn
-    void comStatusIn_handler(FwIndexType portNum,    //!< The port number
-                             Fw::Success& condition  //!< Condition success/failure
+    void comStatusIn_handler(FwIndexType portNum,  //!< The port number
+                             Fw::Success& status   //!< Condition success/failure
                              ) override;
 };
 

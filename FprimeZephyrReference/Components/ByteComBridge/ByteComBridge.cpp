@@ -5,6 +5,7 @@
 // ======================================================================
 
 #include "FprimeZephyrReference/Components/ByteComBridge/ByteComBridge.hpp"
+#include <Fw/Types/Assert.hpp>
 
 namespace Components {
 
@@ -13,16 +14,57 @@ namespace Components {
 // ----------------------------------------------------------------------
 
 ByteComBridge ::ByteComBridge(const char* const compName)
-    : ByteComBridgeComponentBase(compName), m_byteStreamReady(false), m_txReady(false) {}
+    : ByteComBridgeComponentBase(compName),
+      m_byteStreamDriverReady(false),
+      m_comTxReady(false),
+      m_txCircularBufferStorage{},
+      m_txCircularBuffer{},
+      m_comFrameStorage{} {
+    this->m_txCircularBuffer.setup(this->m_txCircularBufferStorage, CIRCULAR_BUFFER_SIZE);
+}
 
 ByteComBridge ::~ByteComBridge() {}
+
+void ByteComBridge::enqueueByteStreamData(const Fw::Buffer& buffer) {
+    const FwSizeType requested = buffer.getSize();
+    const FwSizeType available = this->m_txCircularBuffer.get_free_size();
+    if (requested > available) {
+        this->log_WARNING_HI_ByteStreamBufferFull(requested, available);
+        return;
+    }
+
+    const Fw::SerializeStatus status = this->m_txCircularBuffer.serialize(buffer.getData(), requested);
+    FW_ASSERT(status == Fw::FW_SERIALIZE_OK, static_cast<FwAssertArgType>(status));
+}
+
+void ByteComBridge::trySendQueuedData() {
+    if (!this->m_byteStreamDriverReady ||
+        // The F´ communication adapter interface requires dataReturnOut for a
+        // transmitted buffer to happen before the corresponding comStatusOut; see
+        // lib/fprime/docs/reference/communication-adapter-interface.md. That makes
+        // comTxReady the gate for reusing m_comFrameStorage on the next send.
+        !this->m_comTxReady || this->m_txCircularBuffer.get_allocated_size() == 0) {
+        return;
+    }
+
+    const FwSizeType sendSize = FW_MIN(this->m_txCircularBuffer.get_allocated_size(), COM_TX_FRAME_SIZE);
+    Fw::SerializeStatus status = this->m_txCircularBuffer.peek(this->m_comFrameStorage, sendSize);
+    FW_ASSERT(status == Fw::FW_SERIALIZE_OK, static_cast<FwAssertArgType>(status));
+    status = this->m_txCircularBuffer.rotate(sendSize);
+    FW_ASSERT(status == Fw::FW_SERIALIZE_OK, static_cast<FwAssertArgType>(status));
+    Fw::Buffer data(this->m_comFrameStorage, sendSize);
+    ComCfg::FrameContext context;
+
+    this->m_comTxReady = false;
+    this->comDataOut_out(0, data, context);
+}
 
 // ----------------------------------------------------------------------
 // Handler implementations for typed input ports
 // ----------------------------------------------------------------------
 
 void ByteComBridge ::byteStreamReady_handler(FwIndexType portNum) {
-    this->m_byteStreamReady = true;
+    this->m_byteStreamDriverReady = true;
 }
 
 void ByteComBridge ::byteStreamRecv_handler(FwIndexType portNum,
@@ -33,20 +75,11 @@ void ByteComBridge ::byteStreamRecv_handler(FwIndexType portNum,
         return;
     }
 
-    if (!this->m_byteStreamReady) {
-        this->byteStreamRecvReturnOut_out(0, buffer);
-        return;
-    }
+    FW_ASSERT(this->m_byteStreamDriverReady);
 
-    if (!this->m_txReady) {
-        this->log_WARNING_HI_ComNotReady();
-        this->byteStreamRecvReturnOut_out(0, buffer);
-        return;
-    }
-
-    this->m_txReady = false;
-    ComCfg::FrameContext context;
-    this->comDataOut_out(0, buffer, context);
+    this->enqueueByteStreamData(buffer);
+    this->byteStreamRecvReturnOut_out(0, buffer);
+    this->trySendQueuedData();
 }
 
 void ByteComBridge ::comDataIn_handler(FwIndexType portNum, Fw::Buffer& data, const ComCfg::FrameContext& context) {
@@ -59,12 +92,17 @@ void ByteComBridge ::comDataIn_handler(FwIndexType portNum, Fw::Buffer& data, co
 
 void ByteComBridge ::comDataReturnIn_handler(FwIndexType portNum,
                                              Fw::Buffer& data,
-                                             const ComCfg::FrameContext& context) {
-    this->byteStreamRecvReturnOut_out(0, data);
-}
+                                             const ComCfg::FrameContext& context) {}
 
-void ByteComBridge ::comStatusIn_handler(FwIndexType portNum, Fw::Success& condition) {
-    this->m_txReady = (condition.e == Fw::Success::SUCCESS);
+void ByteComBridge ::comStatusIn_handler(FwIndexType portNum, Fw::Success& status) {
+    if (status.e != Fw::Success::SUCCESS) {
+        this->log_WARNING_HI_ComStatusFailed(status);
+        // After a failed transmit status we still reopen the gate and keep
+        // draining buffered data, hoping the downstream link recovers anyway.
+    }
+
+    this->m_comTxReady = true;
+    this->trySendQueuedData();
 }
 
 }  // namespace Components
