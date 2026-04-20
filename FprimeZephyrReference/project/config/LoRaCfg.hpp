@@ -8,6 +8,6 @@ const U32 DEFAULT_FREQ = 437400000;            //!< LoRa frequency in Hz
 lora_signal_bandwidth BANDWIDTH = BW_125_KHZ;  //!< LoRa bandwidth
 const I8 TX_POWER = 23;                        //!< LoRa transmission power in dBm
 const U16 PREAMBLE_LENGTH = 8;                 //!< LoRa preamble length
-U8 HEADER[] = {0, 0, 0, 0};                    //!< LoRa header (not used)
+U8 HEADER[0] = {};                             //!< No LoRa payload header
 }  // namespace LoRaConfig
 #endif  // LORA_CFG_HPP
