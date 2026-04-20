@@ -28,8 +28,8 @@ module ReferenceDeployment {
     instance cmdSeq
     instance rateGroupDriver
     instance timer
-    instance controlComDriver
-    instance dataComDriver
+    instance controlUartDriver
+    instance dataUartDriver
     instance dataBufferManager
     instance uhf
     instance prmDb
@@ -74,26 +74,26 @@ module ReferenceDeployment {
 
     connections Communications {
       # ComDriver buffer allocations
-      controlComDriver.allocate      -> ComCcsds.commsBufferManager.bufferGetCallee
-      controlComDriver.deallocate    -> ComCcsds.commsBufferManager.bufferSendIn
+      controlUartDriver.allocate      -> ComCcsds.commsBufferManager.bufferGetCallee
+      controlUartDriver.deallocate    -> ComCcsds.commsBufferManager.bufferSendIn
 
       # ComDriver <-> ComStub (Uplink)
-      controlComDriver.$recv                     -> ComCcsds.comStub.drvReceiveIn
-      ComCcsds.comStub.drvReceiveReturnOut -> controlComDriver.recvReturnIn
+      controlUartDriver.$recv                     -> ComCcsds.comStub.drvReceiveIn
+      ComCcsds.comStub.drvReceiveReturnOut -> controlUartDriver.recvReturnIn
 
       # ComStub <-> ComDriver (Downlink)
-      ComCcsds.comStub.drvSendOut      -> controlComDriver.$send
-      controlComDriver.ready         -> ComCcsds.comStub.drvConnected
+      ComCcsds.comStub.drvSendOut      -> controlUartDriver.$send
+      controlUartDriver.ready         -> ComCcsds.comStub.drvConnected
     }
 
     connections Data {
-      # dataComDriver connections
-      dataComDriver.allocate                -> dataBufferManager.bufferGetCallee
-      dataComDriver.deallocate              -> dataBufferManager.bufferSendIn
-      dataComDriver.$recv                   -> byteComBridge.byteStreamRecv
-      dataComDriver.ready                   -> byteComBridge.byteStreamReady
-      byteComBridge.byteStreamSend          -> dataComDriver.$send
-      byteComBridge.byteStreamRecvReturnOut -> dataComDriver.recvReturnIn
+      # dataUartDriver connections
+      dataUartDriver.allocate                -> dataBufferManager.bufferGetCallee
+      dataUartDriver.deallocate              -> dataBufferManager.bufferSendIn
+      dataUartDriver.$recv                   -> byteComBridge.byteStreamRecv
+      dataUartDriver.ready                   -> byteComBridge.byteStreamReady
+      byteComBridge.byteStreamSend          -> dataUartDriver.$send
+      byteComBridge.byteStreamRecvReturnOut -> dataUartDriver.recvReturnIn
 
       # UHF connections
       uhf.allocate                   -> dataBufferManager.bufferGetCallee
@@ -112,8 +112,8 @@ module ReferenceDeployment {
 
       # High rate (10Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
-      rateGroup10Hz.RateGroupMemberOut[0] -> controlComDriver.schedIn
-      rateGroup10Hz.RateGroupMemberOut[1] -> dataComDriver.schedIn
+      rateGroup10Hz.RateGroupMemberOut[0] -> controlUartDriver.schedIn
+      rateGroup10Hz.RateGroupMemberOut[1] -> dataUartDriver.schedIn
       rateGroup10Hz.RateGroupMemberOut[2] -> fileManager.schedIn
 
       # Slow rate (1Hz) rate group

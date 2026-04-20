@@ -67,9 +67,9 @@ module ReferenceDeployment {
 
   instance timer: Zephyr.ZephyrRateDriver base id 0x10013000
 
-  instance controlComDriver: Zephyr.ZephyrUartDriver base id 0x10014000
+  instance controlUartDriver: Zephyr.ZephyrUartDriver base id 0x10014000
 
-  instance dataComDriver: Zephyr.ZephyrUartDriver base id 0x10015000
+  instance dataUartDriver: Zephyr.ZephyrUartDriver base id 0x10015000
 
   instance dataBufferManager: Svc.BufferManager base id 0x10016000 \
     {
