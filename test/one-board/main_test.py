@@ -67,6 +67,17 @@ def test_write_data_port(data_port_one):
     data_port_one.flush()
 
 
+def test_large_data_port_write_warns_when_com_not_ready(fprime_test_api, data_port_one):
+    sent = b"x" * 1024
+
+    assert data_port_one.write(sent) == len(sent)
+    data_port_one.flush()
+
+    fprime_test_api.assert_event(
+        "ReferenceDeployment.byteComBridge.ComNotReady", timeout=2
+    )
+
+
 def test_command_seq_run(fprime_test_api, compiled_sequence_bin):
     remote_path = "/cs_noop.bin"
 
