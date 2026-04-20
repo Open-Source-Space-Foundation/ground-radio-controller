@@ -73,6 +73,17 @@ The `PROBE_ONE` and `PROBE_TWO` variables are optional. When set, `./bft.sh`
 will flash that board through `openocd` and the `program-board` target. When
 unset, it falls back to the BOOTSEL/UF2 copy workflow.
 
+## GDS Notes
+
+With the current LoRa settings in
+`FprimeZephyrReference/project/config/LoRaCfg.hpp` (`SF8`, `125 kHz`, `CR 4/5`,
+no payload header), the Semtech LoRa calculator reports about `901.63 ms` time
+on air for a `252`-byte payload. In practice, GDS-originated packet traffic
+needs about `1 s` of cooldown between full-size packets so the radio can finish
+transmitting one packet before the next one is queued. Also note that GDS data
+writes can be split up arbitrarily before radio transmission, so a single host-
+side write is not guaranteed to map to a single LoRa packet.
+
 ## Coding Agent Workflow
 
 I have got it set up so that you can throw an agent at the project and develop
