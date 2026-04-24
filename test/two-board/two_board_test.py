@@ -10,6 +10,15 @@ PASS_FREQUENCY_HZ = 437430000
 FAIL_FREQUENCY_HZ = 437435000
 
 
+def _assert_no_warnings(fprime_test_api):
+    warnings = [
+        event.get_str(verbose=True)
+        for event in fprime_test_api.get_event_test_history().retrieve()
+        if "WARNING" in str(event.get_severity())
+    ]
+    assert not warnings, "Unexpected warning events:\n" + "\n".join(warnings)
+
+
 def test_open_data_ports(data_port_one, data_port_two):
     assert data_port_one.is_open
     assert data_port_two.is_open
@@ -33,7 +42,9 @@ def test_link_one_to_two_single_252_byte_write(data_port_one, data_port_two):
     assert received == sent, "Timed out waiting for 252-byte payload from board two"
 
 
-def test_link_one_to_two_1024_bytes_one_byte_writes(data_port_one, data_port_two):
+def test_link_one_to_two_1024_bytes_one_byte_writes(
+    fprime_test_api, data_port_one, data_port_two
+):
     # ByteComBridge emits at most 252 bytes into each LoRa frame. The Semtech
     # LoRa calculator, https://www.semtech.com/design-support/lora-calculator,
     # gives 901.63 ms time on air for the deployed modem settings (SF8, 125
@@ -50,6 +61,7 @@ def test_link_one_to_two_1024_bytes_one_byte_writes(data_port_one, data_port_two
         time.sleep(byte_period_seconds)
 
     received = data_port_two.read(len(sent))
+    _assert_no_warnings(fprime_test_api)
     assert received == sent, (
         f"Expected {len(sent)} bytes from board two, received {len(received)}"
     )
