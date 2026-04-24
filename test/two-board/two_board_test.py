@@ -19,26 +19,30 @@ def _assert_no_warnings(fprime_test_api):
     assert not warnings, "Unexpected warning events:\n" + "\n".join(warnings)
 
 
-def test_open_data_ports(data_port_one, data_port_two):
+def test_open_data_ports(fprime_test_api, data_port_one, data_port_two):
     assert data_port_one.is_open
     assert data_port_two.is_open
 
 
-def test_link_one_to_two(data_port_one, data_port_two):
+def test_link_one_to_two(fprime_test_api, data_port_one, data_port_two):
     sent = b"\0"
     data_port_one.write(sent)
     data_port_one.flush()
     received = data_port_two.read(len(sent))
+    _assert_no_warnings(fprime_test_api)
     assert received == sent, "Timed out waiting for data from board two"
 
 
-def test_link_one_to_two_single_252_byte_write(data_port_one, data_port_two):
+def test_link_one_to_two_single_252_byte_write(
+    fprime_test_api, data_port_one, data_port_two
+):
     sent = bytes(range(252))
 
     assert data_port_one.write(sent) == len(sent)
     data_port_one.flush()
 
     received = data_port_two.read(len(sent))
+    _assert_no_warnings(fprime_test_api)
     assert received == sent, "Timed out waiting for 252-byte payload from board two"
 
 
@@ -67,7 +71,9 @@ def test_link_one_to_two_1024_bytes_one_byte_writes(
     )
 
 
-def test_link_one_to_two_six_252_byte_packets(data_port_one, data_port_two):
+def test_link_one_to_two_six_252_byte_packets(
+    fprime_test_api, data_port_one, data_port_two
+):
     chunk = bytes(range(252))
     sent = chunk * 6
 
@@ -80,6 +86,7 @@ def test_link_one_to_two_six_252_byte_packets(data_port_one, data_port_two):
         time.sleep(1.0)
 
     received = data_port_two.read(len(sent))
+    _assert_no_warnings(fprime_test_api)
     assert received == sent, (
         f"Expected {len(sent)} bytes from board two, received {len(received)}"
     )
@@ -104,6 +111,7 @@ def test_link_breaks_after_mismatched_freq(
         data_port_one.write(sent)
         data_port_one.flush()
         received = data_port_two.read(len(sent))
+        _assert_no_warnings(fprime_test_api)
         assert received != sent, (
             "Unexpectedly received payload across mismatched frequencies"
         )
@@ -132,6 +140,7 @@ def test_link_survives_valid_freq_change(fprime_test_api, data_port_one, data_po
         data_port_one.write(sent)
         data_port_one.flush()
         received = data_port_two.read(len(sent))
+        _assert_no_warnings(fprime_test_api)
         assert received == sent, (
             "Timed out waiting for data from board two after frequency change"
         )
