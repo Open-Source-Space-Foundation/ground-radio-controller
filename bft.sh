@@ -58,10 +58,13 @@ function flash() {
 }
 
 function reap_old_gds() {
-    pkill -f fprime-gds || true
+    pkill -f 'fprime-gds|fprime_gds' || true
     rm -f /tmp/fprime-server-in /tmp/fprime-server-out
 
+    prev_trap=$(trap -p EXIT)
+    trap "echo 'Timed out waiting for no readers on $BOARD_ONE_CONTROL_PORT' 1>&2" EXIT
     timeout 5 bash -c "until ! lsof $BOARD_ONE_CONTROL_PORT >/dev/null 2>&1; do sleep 0.1; done"
+    trap "$prev_trap" EXIT
 }
 
 function print_gds_startup_log() {
