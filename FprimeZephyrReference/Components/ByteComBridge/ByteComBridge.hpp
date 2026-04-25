@@ -31,13 +31,14 @@ class ByteComBridge final : public ByteComBridgeComponentBase {
   private:
     bool m_byteStreamDriverReady;
     bool m_comTxReady;
+    std::atomic<bool> m_trySendQueuedDataPending;
     U8 m_txCircularBufferStorage[CIRCULAR_BUFFER_SIZE];
     Types::CircularBuffer m_txCircularBuffer;
     U8 m_comFrameStorage[COM_TX_FRAME_SIZE];
 
   private:
     void enqueueByteStreamData(const Fw::Buffer& buffer);
-    void trySendQueuedData();
+    void requestSendQueuedData();
 
     // ----------------------------------------------------------------------
     // Handler implementations for typed input ports
@@ -68,6 +69,11 @@ class ByteComBridge final : public ByteComBridgeComponentBase {
     void comStatusIn_handler(FwIndexType portNum,  //!< The port number
                              Fw::Success& status   //!< Condition success/failure
                              ) override;
+
+    //! Handler implementation for trySendQueuedData
+    //!
+    //! Internal async handler for processing received data
+    void trySendQueuedData_internalInterfaceHandler() override;
 };
 
 }  // namespace Components

@@ -37,7 +37,17 @@ void ByteComBridge::enqueueByteStreamData(const Fw::Buffer& buffer) {
     FW_ASSERT(status == Fw::FW_SERIALIZE_OK, static_cast<FwAssertArgType>(status));
 }
 
-void ByteComBridge::trySendQueuedData() {
+void ByteComBridge::requestSendQueuedData() {
+    if (!this->m_trySendQueuedDataPending) {
+        // Set bool first so you don't accidentally set it after the handler
+        // has already run
+        this->m_trySendQueuedDataPending = true;
+        this->trySendQueuedData_internalInterfaceInvoke();
+    }
+}
+
+void ByteComBridge::trySendQueuedData_internalInterfaceHandler() {
+    this->m_trySendQueuedDataPending = false;
     if (!this->m_byteStreamDriverReady ||
         // The F´ communication adapter interface requires dataReturnOut for a
         // transmitted buffer to happen before the corresponding comStatusOut; see
@@ -79,7 +89,7 @@ void ByteComBridge ::byteStreamRecv_handler(FwIndexType portNum,
 
     this->enqueueByteStreamData(buffer);
     this->byteStreamRecvReturnOut_out(0, buffer);
-    this->trySendQueuedData();
+    this->requestSendQueuedData();
 }
 
 void ByteComBridge ::comDataIn_handler(FwIndexType portNum, Fw::Buffer& data, const ComCfg::FrameContext& context) {
@@ -102,7 +112,7 @@ void ByteComBridge ::comStatusIn_handler(FwIndexType portNum, Fw::Success& statu
     }
 
     this->m_comTxReady = true;
-    this->trySendQueuedData();
+    this->requestSendQueuedData();
 }
 
 }  // namespace Components

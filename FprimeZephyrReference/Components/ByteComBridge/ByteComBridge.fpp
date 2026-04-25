@@ -17,14 +17,18 @@ module Components {
 
         # BYTE STREAM
 
-        async input port byteStreamReady: Drv.ByteStreamReady
+        guarded input port byteStreamReady: Drv.ByteStreamReady
 
-        async input port byteStreamRecv: Drv.ByteStreamData
+        guarded input port byteStreamRecv: Drv.ByteStreamData
 
         output port byteStreamSend: Drv.ByteStreamSend
 
         @ Port to send back ownership of data received on byteStreamRecv port
         output port byteStreamRecvReturnOut: Fw.BufferSend
+
+        # INTERNAL
+
+        internal port trySendQueuedData() priority 10
 
         @ Event port
         event port Log
