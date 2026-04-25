@@ -92,3 +92,8 @@ automatically. This is possible with hands-free flashing via the debug probe.
 Since I don't want to run an agent with full permissions on my personal
 account, I made a new `agent` user and put it in the `dialout` group for
 access to tty ports and `plugdev` for access to debug adapter.
+
+## Debugging
+
+You can debug with `probe-rs gdb --gdb gdb-multiarch
+build-artifacts/zephyr.elf`
