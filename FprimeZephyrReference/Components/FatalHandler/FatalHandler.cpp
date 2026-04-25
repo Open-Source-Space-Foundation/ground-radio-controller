@@ -14,48 +14,40 @@
 #include <FprimeZephyrReference/Components/FatalHandler/FatalHandler.hpp>
 #include <Fw/FPrimeBasicTypes.hpp>
 #include <zephyr/sys/reboot.h>
+#include <zephyr/logging/log_ctrl.h>
 
 namespace Components {
 
-  // ----------------------------------------------------------------------
-  // Construction, initialization, and destruction
-  // ----------------------------------------------------------------------
+// ----------------------------------------------------------------------
+// Construction, initialization, and destruction
+// ----------------------------------------------------------------------
 
-  FatalHandler ::
-    FatalHandler(
-        const char *const compName
-    ) : FatalHandlerComponentBase(compName)
-  {
+FatalHandler ::FatalHandler(const char* const compName) : FatalHandlerComponentBase(compName) {}
 
-  }
+FatalHandler ::~FatalHandler() {}
 
-  FatalHandler ::
-    ~FatalHandler()
-  {
-
-  }
-
-  void FatalHandler::reboot() {
-  // When running in CI failsafe mode and the board is a teensy,
-  // then we should invoke bkpt #251 to trigger the soft reboot enabling a
-  // flash of new software
-  #if defined(FPRIME_CI_FAILSAFE_CYCLE_COUNT)
-      // Magic bootloader breakpoint, provided by PRJC
-      if (strncmp(CONFIG_BOARD, "teensy", 6) == 0) {
+void FatalHandler::reboot() {
+// When running in CI failsafe mode and the board is a teensy,
+// then we should invoke bkpt #251 to trigger the soft reboot enabling a
+// flash of new software
+#if defined(FPRIME_CI_FAILSAFE_CYCLE_COUNT)
+    // Magic bootloader breakpoint, provided by PRJC
+    if (strncmp(CONFIG_BOARD, "teensy", 6) == 0) {
         asm("bkpt #251");
-      }
-  #endif
+    }
+#endif
     // Otherwise, use Zephyr to reboot the system
     sys_reboot(SYS_REBOOT_COLD);
-  }
+}
 
-  void FatalHandler::FatalReceive_handler(
-            const FwIndexType portNum,
-            FwEventIdType Id) {
-        Fw::Logger::log("FATAL %" PRI_FwEventIdType "handled.\n",Id);
-        Os::Task::delay(Fw::TimeInterval(0, 100000)); // Delay to allow log to be processed
-        this->reboot(); // Reboot the system
-    }
+void FatalHandler::FatalReceive_handler(const FwIndexType portNum, FwEventIdType Id) {
+    Fw::Logger::log("FATAL %" PRI_FwEventIdType "handled.\n", Id);
+    Os::Task::delay(Fw::TimeInterval(0, 100000));  // Delay to allow log to be processed
+    LOG_PANIC();
+    /*log_panic();*/
+    /*log_flush();*/
+    this->reboot();  // Reboot the system
+}
 
 // ----------------------------------------------------------------------
 // Handler implementations for commands
@@ -63,10 +55,9 @@ namespace Components {
 
 void FatalHandler ::RESTART_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
     this->log_ACTIVITY_HI_Rebooting();
-    Os::Task::delay(Fw::TimeInterval(0, 100000)); // Delay to allow event to go out
+    Os::Task::delay(Fw::TimeInterval(0, 100000));  // Delay to allow event to go out
     this->reboot();
     this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
-
-} // end namespace Svc
+}  // namespace Components
