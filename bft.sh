@@ -37,18 +37,20 @@ fi
 fprime-util build
 
 function flash() {
-    local BOARD_ID="$1"
-    local DEBUG_PROBE_SERIAL="$2"
-
-    if [[ -n "$DEBUG_PROBE_SERIAL" ]]; then
-        echo "Flashing $BOARD_ID via debug probe $DEBUG_PROBE_SERIAL"
-        # 2e8a:000c-0 is Pi debug probe VID:PID
-        probe-rs download --probe 2e8a:000c-0:"$DEBUG_PROBE_SERIAL" ./build-artifacts/zephyr.elf
-        probe-rs reset --probe 2e8a:000c-0:"$DEBUG_PROBE_SERIAL"
-        return
+    local board_id="$1"
+    local debug_probe_serial="$2"
+    if [ -z "$debug_probe_serial" ]; then
+        uf2flash "$@"
+    else
+        probe_rs_flash "$@"
     fi
+}
 
-    echo "Waiting for BOOTSEL on $BOARD_ID"
+function uf2flash() {
+    local board_id="$1"
+    local debug_probe_serial="$2"
+
+    echo "Waiting for BOOTSEL on $board_id"
 
     DEV="/dev/disk/by-label/RP2350"
     until [ -e "$DEV" ]; do :; done
@@ -57,6 +59,24 @@ function flash() {
     echo "Got a BOOTSEL!"
 
     cp ./build-artifacts/zephyr.uf2 "$MOUNTPOINT"
+}
+
+function probe_rs_flash() {
+    local board_id="$1"
+    local debug_probe_serial="$2"
+    echo "Flashing $board_id via debug probe $debug_probe_serial"
+    # 2e8a:000c-0 is Pi debug probe VID:PID
+    probe-rs download --probe 2e8a:000c-0:"$debug_probe_serial" ./build-artifacts/zephyr.elf
+    probe-rs reset --probe 2e8a:000c-0:"$debug_probe_serial"
+}
+
+function probe_rs_flash_both() {
+    echo "Flashing both boards..."
+    probe-rs download --probe 2e8a:000c-0:"$PROBE_ONE" ./build-artifacts/zephyr.elf &
+    probe-rs download --probe 2e8a:000c-0:"$PROBE_TWO" ./build-artifacts/zephyr.elf &
+    wait
+    probe-rs reset --probe 2e8a:000c-0:"$PROBE_ONE"
+    probe-rs reset --probe 2e8a:000c-0:"$PROBE_TWO"
 }
 
 function reap_old_gds() {
@@ -78,16 +98,24 @@ function print_gds_startup_log() {
     fi
 }
 
-flash "$BOARD_ONE" "$PROBE_ONE"
-trap "echo 'Timed out waiting for USB serial port after flash $BOARD_ONE' 1>&2" EXIT
-timeout 5 bash -c "until [[ -e $BOARD_ONE_CONTROL_PORT && -e $BOARD_ONE_DATA_PORT ]]; do sleep 0.1; done"
-trap - EXIT
-
-if [[ "$NUM_BOARDS" -eq 2 ]]; then
-    flash "$BOARD_TWO" "$PROBE_TWO"
+if [ "$NUM_BOARDS" = 2 -a -n "$PROBE_ONE" -a -n "$PROBE_TWO" ]; then
+    probe_rs_flash_both
+    trap "echo 'Timed out waiting for USB serial port after flash $BOARD_ONE' 1>&2" EXIT
+    timeout 5 bash -c "until [[ -e $BOARD_ONE_CONTROL_PORT && -e $BOARD_ONE_DATA_PORT ]]; do sleep 0.1; done"
     trap "echo 'Timed out waiting for USB serial port after flash $BOARD_TWO' 1>&2" EXIT
     timeout 5 bash -c "until [[ -e $BOARD_TWO_CONTROL_PORT && -e $BOARD_TWO_DATA_PORT ]]; do sleep 0.1; done"
     trap - EXIT
+else
+    flash "$BOARD_ONE" "$PROBE_ONE"
+    trap "echo 'Timed out waiting for USB serial port after flash $BOARD_ONE' 1>&2" EXIT
+    timeout 5 bash -c "until [[ -e $BOARD_ONE_CONTROL_PORT && -e $BOARD_ONE_DATA_PORT ]]; do sleep 0.1; done"
+    trap - EXIT
+    if [ "$NUM_BOARDS" = 2 ]; then
+        flash "$BOARD_TWO" "$PROBE_TWO"
+        trap "echo 'Timed out waiting for USB serial port after flash $BOARD_TWO' 1>&2" EXIT
+        timeout 5 bash -c "until [[ -e $BOARD_TWO_CONTROL_PORT && -e $BOARD_TWO_DATA_PORT ]]; do sleep 0.1; done"
+        trap - EXIT
+    fi
 fi
 
 
