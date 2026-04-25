@@ -37,30 +37,3 @@ set_target_properties(fprime-zephyr_Drv_ZephyrSpiDriver PROPERTIES EXCLUDE_FROM_
 set_target_properties(Svc_FileWorker_test_FileTester PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 
-###
-# Raspberry Pi Pico Debug Probe Toolchain
-###
-
-set(RPI_OPENOCD_DIR "${CMAKE_BINARY_DIR}/rpi-openocd")
-set(RPI_OPENOCD_BIN "${RPI_OPENOCD_DIR}/openocd")
-
-add_custom_command(
-  OUTPUT "${RPI_OPENOCD_BIN}"
-  COMMAND "${CMAKE_SOURCE_DIR}/scripts/get-rpi-openocd.sh" "${RPI_OPENOCD_DIR}"
-  COMMENT "Fetching rpi-openocd into ${RPI_OPENOCD_DIR}"
-  VERBATIM
-)
-
-add_custom_target(rpi-openocd DEPENDS "${RPI_OPENOCD_BIN}")
-
-set(PROGRAM_OPENOCD_CFG "${CMAKE_SOURCE_DIR}/openocd/program.cfg")
-
-add_custom_target(program-board
-  COMMAND "${RPI_OPENOCD_BIN}"
-          -s "${RPI_OPENOCD_DIR}/scripts"
-          -c "set ELF \"$<TARGET_FILE:zephyr_final>\""
-          -f "${PROGRAM_OPENOCD_CFG}"
-  DEPENDS rpi-openocd
-  USES_TERMINAL
-  VERBATIM
-)

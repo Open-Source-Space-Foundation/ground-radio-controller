@@ -70,8 +70,8 @@ $ ls /dev/serial/by-id/usb-Raspberry_Pi_Debug_Probe__CMSIS-DAP__*
 
 This controls which board is the primary and which is the secondary for tests.
 The `PROBE_ONE` and `PROBE_TWO` variables are optional. When set, `./bft.sh`
-will flash that board through `openocd` and the `program-board` target. When
-unset, it falls back to the BOOTSEL/UF2 copy workflow.
+will flash that board via probe-rs. When unset, it falls back to the
+BOOTSEL/UF2 copy workflow.
 
 ## GDS Notes
 

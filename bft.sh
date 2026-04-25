@@ -42,7 +42,9 @@ function flash() {
 
     if [[ -n "$DEBUG_PROBE_SERIAL" ]]; then
         echo "Flashing $BOARD_ID via debug probe $DEBUG_PROBE_SERIAL"
-        OPENOCD_ADAPTER_SERIAL="$DEBUG_PROBE_SERIAL" fprime-util build --target program-board
+        # 2e8a:000c-0 is Pi debug probe VID:PID
+        probe-rs download --probe 2e8a:000c-0:"$DEBUG_PROBE_SERIAL" ./build-artifacts/zephyr.elf
+        probe-rs reset --probe 2e8a:000c-0:"$DEBUG_PROBE_SERIAL"
         return
     fi
 
