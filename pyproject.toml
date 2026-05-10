@@ -1,3 +1,9 @@
+[project]
+name = "ground-radio-controller"
+version = "0.0.0"
+requires-python = ">=3.10"
+description = "F Prime / Zephyr ground radio controller firmware"
+
 [tool.pytest.ini_options]
 # F prime GDS pytest plugin defaults to wrong deployment path so we need this:
 addopts = ["--deployment=build-artifacts/zephyr/fprime-zephyr-deployment/"]

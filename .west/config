@@ -6,5 +6,5 @@ file = west.yml
 base = ./lib/zephyr-workspace/zephyr
 
 [build]
-board = rpi_pico2/rp2350a/m33
+board = ground_radio_controller/rp2350a/m33
 

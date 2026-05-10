@@ -1,3 +1,11 @@
+
+# Prerequisites
+
+- F Prime System Requirements listed [here](https://fprime.jpl.nasa.gov/latest/docs/getting-started/installing-fprime/#system-requirements)
+- Zephyr dependencies listed [here](https://docs.zephyrproject.org/latest/develop/getting_started/index.html#install-dependencies) (NOTE: Only complete the install dependencies step, as we run through the rest of the steps in this readme.)
+
+
+
 # Formatting
 
 Configure auto-formatting pre-commit with:
@@ -13,6 +21,8 @@ I have found `menuconfig` to be helpful for exploring config options:
 ```
 fprime-util build --target menuconfig
 ```
+
+And soon a helper Make target will be added.
 
 It loads by default the combination of Kconfig fragments `prj.conf` and the
 board's `defconfig`. The resulting configuration is in
@@ -127,3 +137,7 @@ attach2` to connect to those streams.
 
 There are targets `test1`, `test2` for just running tests and `gds` for
 starting running the GDS manually.
+
+# Other Explanation
+
+Two targets live under **`boards/proves/`** (with **`BOARD_ROOT=.`** in `settings.ini`): **`ground_radio_controller/rp2350a/m33`** (Ground Radio) and **`proves_flight_control_board_v5/rp2350a/m33`** (PROVES FC v5). Each board has a thin **`…_rp2350a_m33.dts`** that matches upstream Pico 2 plus a single **`…_hardware.dtsi`** for project nodes—edit **`ground_radio_hardware.dtsi`** or **`proves_flight_control_board_v5_hardware.dtsi`** respectively. Default **`BOARD`** in `settings.ini` selects which one you build.
