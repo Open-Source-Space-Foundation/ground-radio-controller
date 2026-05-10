@@ -12,6 +12,7 @@ lib/zephyr-workspace/*
 
 # Misc
 /venv/
+/.venv/
 /fprime-venv/
 /.idea/
 /.vscode/

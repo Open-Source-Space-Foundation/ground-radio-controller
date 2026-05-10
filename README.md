@@ -1,3 +1,20 @@
+## System Requirements
+- F Prime System Requirements listed [here](https://fprime.jpl.nasa.gov/latest/docs/getting-started/installing-fprime/#system-requirements)
+- Zephyr dependencies listed [here](https://docs.zephyrproject.org/latest/develop/getting_started/index.html#install-dependencies) (NOTE: Only complete the install dependencies step, as we run through the rest of the steps in this readme.)
+- [UV](https://docs.astral.sh/uv/getting-started/installation/) needs to be globally installed on your system.
+
+If you want to manually run the code, and use the makefile, run 
+
+> make
+
+then 
+
+copy build-artifacts/zephyr.uf2 into the rp2350 in bootloader mode.
+
+There are two serial connections on this board. The first opens the gds and the second allows the use to see radio passthrough commands 
+
+Two targets live under **`boards/proves/`** (with **`BOARD_ROOT=.`** in `settings.ini`): **`ground_radio_controller/rp2350a/m33`** (Ground Radio) and **`proves_flight_control_board_v5/rp2350a/m33`** (PROVES FC v5). Each board has a thin **`…_rp2350a_m33.dts`** that matches upstream Pico 2 plus a single **`…_hardware.dtsi`** for project nodes—edit **`ground_radio_hardware.dtsi`** or **`proves_flight_control_board_v5_hardware.dtsi`** respectively. Default **`BOARD`** in `settings.ini` selects which one you build.
+
 # Formatting
 
 Configure auto-formatting pre-commit with:
@@ -11,7 +28,7 @@ git config core.hooksPath githooks
 I have found `menuconfig` to be helpful for exploring config options:
 
 ```
-fprime-util build --target menuconfig
+fprime-util build --target menuconfig or make menuconfig
 ```
 
 It loads by default the combination of Kconfig fragments `prj.conf` and the
