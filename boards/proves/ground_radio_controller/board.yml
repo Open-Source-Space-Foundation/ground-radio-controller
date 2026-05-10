@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Ground Radio Controller — DTS uses upstream Pico 2 base + ground_radio_hardware.dtsi only.
+
+board:
+  name: ground_radio_controller
+  full_name: Ground Radio Controller
+  vendor: f_prime
+  socs:
+    - name: rp2350a

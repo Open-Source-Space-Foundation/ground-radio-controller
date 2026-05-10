@@ -1,0 +1,14 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Same composition as Zephyr upstream rpi_pico2_rp2350a_m33.dts, plus ground_radio_hardware.dtsi.
+ * No PROVES or other vendor extras — only stock Pico 2 base + project fragment below.
+ */
+
+/dts-v1/;
+
+#include <raspberrypi/rpi_pico/rp2350a.dtsi>
+#include <raspberrypi/rpi_pico/m33.dtsi>
+#include <../boards/raspberrypi/rpi_pico2/rpi_pico2.dtsi>
+#include <../boards/raspberrypi/common/rpi_pico-led.dtsi>
+#include "ground_radio_hardware.dtsi"
