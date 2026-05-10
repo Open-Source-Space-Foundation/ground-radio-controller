@@ -20,7 +20,7 @@
 		};
 
 		group2 {
-			pinmux = <SPI1_RX_P12>;
+			pinmux = <SPI1_RX_P8>;
 			input-enable;
 		};
 	};
