@@ -5,6 +5,6 @@
 board:
   name: ground_radio_controller
   full_name: Ground Radio Controller
-  vendor: f_prime
+  vendor: PROVES
   socs:
     - name: rp2350a
