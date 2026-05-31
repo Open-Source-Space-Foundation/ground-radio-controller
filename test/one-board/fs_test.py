@@ -19,12 +19,6 @@ def test_create_directory_success(fprime_test_api):
         timeout=DEFAULT_TIMEOUT,
     )
 
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.fileManager.RemoveDirectory",
-        [dir_name],
-        timeout=DEFAULT_TIMEOUT,
-    )
-
 
 def test_create_directory_already_exists_fails(fprime_test_api):
     dir_name = "/tdir"
@@ -41,12 +35,6 @@ def test_create_directory_already_exists_fails(fprime_test_api):
     )
     fprime_test_api.assert_event(
         "ReferenceDeployment.fileManager.DirectoryCreateError",
-        timeout=DEFAULT_TIMEOUT,
-    )
-
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.fileManager.RemoveDirectory",
-        [dir_name],
         timeout=DEFAULT_TIMEOUT,
     )
 
@@ -86,12 +74,6 @@ def test_list_directory(fprime_test_api):
         timeout=LIST_TIMEOUT,
     )
 
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.fileManager.RemoveDirectory",
-        [dir_name],
-        timeout=DEFAULT_TIMEOUT,
-    )
-
 
 def test_remove_file_missing_file(fprime_test_api):
     fprime_test_api.send_and_assert_command(
@@ -113,12 +95,6 @@ def test_file_uplink(fprime_test_api):
         fprime_test_api.uplink_file_and_await_completion(
             temp_file.name, destination, timeout=UPLINK_TIMEOUT
         )
-
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.fileManager.RemoveFile",
-        [destination, True],
-        timeout=DEFAULT_TIMEOUT,
-    )
 
 
 def test_remove_file_success(fprime_test_api):
@@ -169,12 +145,6 @@ def test_file_size(fprime_test_api):
     )
     assert event.args[1].val == len(payload)
 
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.fileManager.RemoveFile",
-        [destination, True],
-        timeout=DEFAULT_TIMEOUT,
-    )
-
 
 def test_move_file(fprime_test_api):
     payload = b"move-file-check"
@@ -204,17 +174,6 @@ def test_move_file(fprime_test_api):
         timeout=DEFAULT_TIMEOUT,
     )
     assert event.args[1].val == len(payload)
-
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.fileManager.RemoveFile",
-        [source, True],
-        timeout=DEFAULT_TIMEOUT,
-    )
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.fileManager.RemoveFile",
-        [destination, True],
-        timeout=DEFAULT_TIMEOUT,
-    )
 
 
 def test_append_file(fprime_test_api):
@@ -254,17 +213,6 @@ def test_append_file(fprime_test_api):
     )
     assert event.args[1].val == len(source_payload) + len(destination_payload)
 
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.fileManager.RemoveFile",
-        [source, True],
-        timeout=DEFAULT_TIMEOUT,
-    )
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.fileManager.RemoveFile",
-        [destination, True],
-        timeout=DEFAULT_TIMEOUT,
-    )
-
 
 def test_remove_directory_not_empty_fails(fprime_test_api):
     dir_name = "/tne"
@@ -289,16 +237,5 @@ def test_remove_directory_not_empty_fails(fprime_test_api):
     )
     fprime_test_api.assert_event(
         "ReferenceDeployment.fileManager.DirectoryRemoveError",
-        timeout=DEFAULT_TIMEOUT,
-    )
-
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.fileManager.RemoveFile",
-        [file_name, True],
-        timeout=DEFAULT_TIMEOUT,
-    )
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.fileManager.RemoveDirectory",
-        [dir_name],
         timeout=DEFAULT_TIMEOUT,
     )
