@@ -39,6 +39,21 @@ I wrote `bft.sh` to speed the red-green-refactor loop.
 - `./bft.sh 1 fs` runs one-board filesystem tests only
 - `./bft.sh 2` runs two-board tests
 
+`bft.sh` requires debug probe serials. It uses `probe-rs` to flash boards.
+Install the CLI with:
+
+```
+cargo install probe-rs-tools --locked
+```
+
+`bft.sh` expects `probe-rs` to already be on the caller's `PATH`; putting
+`$HOME/.cargo/bin` on `PATH` is the user's shell configuration responsibility.
+
+To install software without a debug probe, build with `fprime-util build`, put
+the board in BOOTSEL mode, and copy `./build-artifacts/zephyr.uf2` to the
+mounted `RP2350` volume. This manual UF2 workflow is not supported by `bft.sh`;
+running tests requires a debug probe.
+
 ## Test Config
 
 You must create a file `testconfig` in the project root with the contents:
@@ -69,9 +84,8 @@ $ ls /dev/serial/by-id/usb-Raspberry_Pi_Debug_Probe__CMSIS-DAP__*
 ```
 
 This controls which board is the primary and which is the secondary for tests.
-The `PROBE_ONE` and `PROBE_TWO` variables are optional. When set, `./bft.sh`
-will flash that board via probe-rs. When unset, it falls back to the
-BOOTSEL/UF2 copy workflow.
+`./bft.sh 1` requires `PROBE_ONE`; `./bft.sh 2` requires both `PROBE_ONE` and
+`PROBE_TWO`.
 
 ## GDS Notes
 

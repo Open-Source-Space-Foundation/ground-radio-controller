@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-if [[ $# -lt 1 ]] || [[ $# -gt 2 ]] || [[ ! "$1" =~ ^[12]$ ]]; then
+if [ $# -lt 1 ] || [ $# -gt 2 ]; then
     echo "Usage: $0 {1|2} [all|main|fs]" >&2
     exit 1
 fi
@@ -12,69 +12,73 @@ fi
 NUM_BOARDS="$1"
 SUITE="${2:-all}"
 
-if [[ "$NUM_BOARDS" -eq 2 ]] && [[ $# -eq 2 ]]; then
+case "$NUM_BOARDS" in
+    1|2)
+        ;;
+    *)
+        echo "Usage: $0 {1|2} [all|main|fs]" >&2
+        exit 1
+        ;;
+esac
+
+if [ "$NUM_BOARDS" -eq 2 ] && [ $# -eq 2 ]; then
     echo "Usage: $0 2" >&2
     exit 1
 fi
 
-if [[ "$NUM_BOARDS" -eq 1 ]] && [[ ! "$SUITE" =~ ^(all|main|fs)$ ]]; then
-    echo "Usage: $0 1 [all|main|fs]" >&2
-    exit 1
+if [ "$NUM_BOARDS" -eq 1 ]; then
+    case "$SUITE" in
+        all|main|fs)
+            ;;
+        *)
+            echo "Usage: $0 1 [all|main|fs]" >&2
+            exit 1
+            ;;
+    esac
 fi
 
 source ./testconfig
 BOARD_ONE_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_ONE-if00"
 BOARD_ONE_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_ONE-if02"
 PROBE_ONE="${PROBE_ONE:-}"
+PROBE_TWO="${PROBE_TWO:-}"
 
-if [[ "$NUM_BOARDS" -eq 2 ]]; then
+if [ "$NUM_BOARDS" -eq 2 ]; then
     BOARD_TWO_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_TWO-if00"
     BOARD_TWO_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_TWO-if02"
-    PROBE_TWO="${PROBE_TWO:-}"
 fi
 
-# Build everything so zephyr.uf2 is up to date
+if [ -z "$PROBE_ONE" ] || { [ "$NUM_BOARDS" -eq 2 ] && [ -z "$PROBE_TWO" ]; }; then
+    echo "bft.sh requires PROBE_ONE, and PROBE_TWO for two-board tests" >&2
+    exit 1
+fi
+
+if ! command -v probe-rs >/dev/null 2>&1; then
+    echo "probe-rs is required to run bft.sh." >&2
+    echo "Install it with: cargo install probe-rs-tools --locked" >&2
+    exit 1
+fi
+
+# Build everything so zephyr.elf is up to date
 fprime-util build
 
-function flash() {
-    local board_id="$1"
-    local debug_probe_serial="$2"
-    if [ -z "$debug_probe_serial" ]; then
-        uf2flash "$@"
-    else
-        probe_rs_flash "$@"
-    fi
-}
-
-function uf2flash() {
+function flash_with_probe() {
     local board_id="$1"
     local debug_probe_serial="$2"
 
-    echo "Waiting for BOOTSEL on $board_id"
-
-    DEV="/dev/disk/by-label/RP2350"
-    until [ -e "$DEV" ]; do :; done
-    until MOUNTPOINT=$(findmnt --json "$DEV" | jq -r '.filesystems.[0].target'); do :; done
-
-    echo "Got a BOOTSEL!"
-
-    cp ./build-artifacts/zephyr.uf2 "$MOUNTPOINT"
-}
-
-function probe_rs_flash() {
-    local board_id="$1"
-    local debug_probe_serial="$2"
     echo "Flashing $board_id via debug probe $debug_probe_serial"
     # 2e8a:000c-0 is Pi debug probe VID:PID
     probe-rs download --probe 2e8a:000c-0:"$debug_probe_serial" ./build-artifacts/zephyr.elf
     probe-rs reset --probe 2e8a:000c-0:"$debug_probe_serial"
 }
 
-function probe_rs_flash_both() {
+function flash_both_with_probe() {
     echo "Flashing both boards..."
     probe-rs download --probe 2e8a:000c-0:"$PROBE_ONE" ./build-artifacts/zephyr.elf &
     probe-rs download --probe 2e8a:000c-0:"$PROBE_TWO" ./build-artifacts/zephyr.elf &
+
     wait
+
     probe-rs reset --probe 2e8a:000c-0:"$PROBE_ONE"
     probe-rs reset --probe 2e8a:000c-0:"$PROBE_TWO"
 }
@@ -92,30 +96,29 @@ function reap_old_gds() {
 function print_gds_startup_log() {
     local LOG_PATH="$1"
 
-    if [[ -s "$LOG_PATH" ]]; then
+    if [ -s "$LOG_PATH" ]; then
         echo "GDS startup output:" >&2
         cat "$LOG_PATH" >&2
     fi
 }
 
-if [ "$NUM_BOARDS" = 2 -a -n "$PROBE_ONE" -a -n "$PROBE_TWO" ]; then
-    probe_rs_flash_both
-    trap "echo 'Timed out waiting for USB serial port after flash $BOARD_ONE' 1>&2" EXIT
-    timeout 5 bash -c "until [[ -e $BOARD_ONE_CONTROL_PORT && -e $BOARD_ONE_DATA_PORT ]]; do sleep 0.1; done"
-    trap "echo 'Timed out waiting for USB serial port after flash $BOARD_TWO' 1>&2" EXIT
-    timeout 5 bash -c "until [[ -e $BOARD_TWO_CONTROL_PORT && -e $BOARD_TWO_DATA_PORT ]]; do sleep 0.1; done"
+function wait_for_serial_ports() {
+    local board_id="$1"
+    local control_port="$2"
+    local data_port="$3"
+
+    trap "echo 'Timed out waiting for USB serial port after flash $board_id' 1>&2" EXIT
+    timeout 5 bash -c 'until [ -e "$1" ] && [ -e "$2" ]; do sleep 0.1; done' bash "$control_port" "$data_port"
     trap - EXIT
+}
+
+if [ "$NUM_BOARDS" = 2 ]; then
+    flash_both_with_probe
+    wait_for_serial_ports "$BOARD_ONE" "$BOARD_ONE_CONTROL_PORT" "$BOARD_ONE_DATA_PORT"
+    wait_for_serial_ports "$BOARD_TWO" "$BOARD_TWO_CONTROL_PORT" "$BOARD_TWO_DATA_PORT"
 else
-    flash "$BOARD_ONE" "$PROBE_ONE"
-    trap "echo 'Timed out waiting for USB serial port after flash $BOARD_ONE' 1>&2" EXIT
-    timeout 5 bash -c "until [[ -e $BOARD_ONE_CONTROL_PORT && -e $BOARD_ONE_DATA_PORT ]]; do sleep 0.1; done"
-    trap - EXIT
-    if [ "$NUM_BOARDS" = 2 ]; then
-        flash "$BOARD_TWO" "$PROBE_TWO"
-        trap "echo 'Timed out waiting for USB serial port after flash $BOARD_TWO' 1>&2" EXIT
-        timeout 5 bash -c "until [[ -e $BOARD_TWO_CONTROL_PORT && -e $BOARD_TWO_DATA_PORT ]]; do sleep 0.1; done"
-        trap - EXIT
-    fi
+    flash_with_probe "$BOARD_ONE" "$PROBE_ONE"
+    wait_for_serial_ports "$BOARD_ONE" "$BOARD_ONE_CONTROL_PORT" "$BOARD_ONE_DATA_PORT"
 fi
 
 
@@ -148,7 +151,7 @@ trap "rm -f \"$GDS_LOG\"; trap '' SIGTERM; kill -- -$$ 2>/dev/null;" SIGINT SIGT
 
 
 # Run appropriate test based on board configuration
-if [[ "$NUM_BOARDS" -eq 1 ]]; then
+if [ "$NUM_BOARDS" -eq 1 ]; then
     case "$SUITE" in
         main)
             pytest --data-port-one="$BOARD_ONE_DATA_PORT" test/one-board/main_test.py
