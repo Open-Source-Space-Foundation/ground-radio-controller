@@ -39,7 +39,8 @@ I wrote `bft.sh` to speed the red-green-refactor loop.
 - `./bft.sh 1 fs` runs one-board filesystem tests only
 - `./bft.sh 2` runs two-board tests
 
-`bft.sh` requires debug probe serials. It uses `probe-rs` to flash boards.
+`bft.sh` requires a debug probe USB ID and debug probe serials. It uses
+`probe-rs` to flash boards and to reset board hardware before each test.
 Install the CLI with:
 
 ```
@@ -61,6 +62,7 @@ You must create a file `testconfig` in the project root with the contents:
 ```
 BOARD_ONE="C1C760D69E02825F"
 BOARD_TWO="291E95CA969699F2"
+PROBE_USB_ID="2e8a:000c-0"
 PROBE_ONE="E6647C74033F7030"
 PROBE_TWO="E6647C7403481E2F"
 ```

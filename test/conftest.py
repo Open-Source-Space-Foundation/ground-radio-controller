@@ -1,8 +1,14 @@
 import pytest
 import serial
+import subprocess
+import time
+from pathlib import Path
 
 
 SERIAL_READ_TIMEOUT_SECONDS = 2.0
+RESET_TIMEOUT_SECONDS = 10.0
+RESET_READY_EVENT = "CdhCore.version.FrameworkVersion"
+RESET_SYNC_COMMAND = "CdhCore.cmdDisp.CMD_NO_OP"
 
 
 def _open_data_port(port: str) -> serial.Serial:
@@ -24,6 +30,24 @@ def pytest_addoption(parser):
         default=[],
         help="list of data_port_twos to pass to test functions",
     )
+    parser.addoption(
+        "--probe-usb-id",
+        action="store",
+        default="",
+        help="debug probe USB VID:PID-interface",
+    )
+    parser.addoption(
+        "--probe-one",
+        action="store",
+        default="",
+        help="debug probe serial for board one",
+    )
+    parser.addoption(
+        "--probe-two",
+        action="store",
+        default="",
+        help="debug probe serial for board two",
+    )
 
 
 def pytest_generate_tests(metafunc):
@@ -39,6 +63,73 @@ def pytest_generate_tests(metafunc):
             metafunc.config.getoption("--data-port-two"),
             indirect=True,
         )
+
+
+def _wait_for_data_ports(data_ports):
+    paths = [Path(data_port) for data_port in data_ports]
+    deadline = time.monotonic() + RESET_TIMEOUT_SECONDS
+    while time.monotonic() < deadline and not all(path.exists() for path in paths):
+        time.sleep(0.1)
+
+    missing = [path for path in paths if not path.exists()]
+    if missing:
+        pytest.fail(
+            "Timed out waiting for reset data ports: " + ", ".join(map(str, missing))
+        )
+
+
+def _wait_for_gds(api):
+    api.clear_histories()
+    if (
+        api.await_event(
+            RESET_READY_EVENT,
+            start=0,
+            timeout=int(RESET_TIMEOUT_SECONDS),
+        )
+        is None
+    ):
+        pytest.fail(f"Timed out waiting for {RESET_READY_EVENT} after board reset")
+
+    api.send_and_assert_command(
+        RESET_SYNC_COMMAND,
+        timeout=int(RESET_TIMEOUT_SECONDS),
+    )
+
+
+@pytest.fixture(autouse=True)
+def reset_boards_between_tests(request):
+    config = request.config
+    data_ports = [config.getoption("--data-port-one")[0]]
+    probe_usb_id = config.getoption("--probe-usb-id")
+    probe_serials = [config.getoption("--probe-one")]
+
+    data_port_two = config.getoption("--data-port-two")
+    if data_port_two:
+        data_ports.append(data_port_two[0])
+        probe_serials.append(config.getoption("--probe-two"))
+
+    api = None
+    if "fprime_test_api" in request.fixturenames:
+        api = request.getfixturevalue("fprime_test_api_session")
+
+    for probe_serial in probe_serials:
+        subprocess.run(
+            [
+                "probe-rs",
+                "reset",
+                "--probe",
+                f"{probe_usb_id}:{probe_serial}",
+            ],
+            check=True,
+            timeout=RESET_TIMEOUT_SECONDS,
+        )
+
+    _wait_for_data_ports(data_ports)
+
+    if api is None:
+        return
+
+    _wait_for_gds(api)
 
 
 @pytest.fixture

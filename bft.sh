@@ -40,16 +40,16 @@ fi
 source ./testconfig
 BOARD_ONE_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_ONE-if00"
 BOARD_ONE_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_ONE-if02"
+PROBE_USB_ID="${PROBE_USB_ID:-}"
 PROBE_ONE="${PROBE_ONE:-}"
 PROBE_TWO="${PROBE_TWO:-}"
 
 if [ "$NUM_BOARDS" -eq 2 ]; then
-    BOARD_TWO_CONTROL_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_TWO-if00"
     BOARD_TWO_DATA_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$BOARD_TWO-if02"
 fi
 
-if [ -z "$PROBE_ONE" ] || { [ "$NUM_BOARDS" -eq 2 ] && [ -z "$PROBE_TWO" ]; }; then
-    echo "bft.sh requires PROBE_ONE, and PROBE_TWO for two-board tests" >&2
+if [ -z "$PROBE_USB_ID" ] || [ -z "$PROBE_ONE" ] || { [ "$NUM_BOARDS" -eq 2 ] && [ -z "$PROBE_TWO" ]; }; then
+    echo "bft.sh requires PROBE_USB_ID, PROBE_ONE, and PROBE_TWO for two-board tests" >&2
     exit 1
 fi
 
@@ -59,6 +59,8 @@ if ! command -v probe-rs >/dev/null 2>&1; then
     exit 1
 fi
 
+echo "Resetting board hardware via probe-rs before each test"
+
 # Build everything so zephyr.elf is up to date
 fprime-util build
 
@@ -67,20 +69,19 @@ function flash_with_probe() {
     local debug_probe_serial="$2"
 
     echo "Flashing $board_id via debug probe $debug_probe_serial"
-    # 2e8a:000c-0 is Pi debug probe VID:PID
-    probe-rs download --probe 2e8a:000c-0:"$debug_probe_serial" ./build-artifacts/zephyr.elf
-    probe-rs reset --probe 2e8a:000c-0:"$debug_probe_serial"
+    probe-rs download --probe "$PROBE_USB_ID:$debug_probe_serial" ./build-artifacts/zephyr.elf
+    probe-rs reset --probe "$PROBE_USB_ID:$debug_probe_serial"
 }
 
 function flash_both_with_probe() {
     echo "Flashing both boards..."
-    probe-rs download --probe 2e8a:000c-0:"$PROBE_ONE" ./build-artifacts/zephyr.elf &
-    probe-rs download --probe 2e8a:000c-0:"$PROBE_TWO" ./build-artifacts/zephyr.elf &
+    probe-rs download --probe "$PROBE_USB_ID:$PROBE_ONE" ./build-artifacts/zephyr.elf &
+    probe-rs download --probe "$PROBE_USB_ID:$PROBE_TWO" ./build-artifacts/zephyr.elf &
 
     wait
 
-    probe-rs reset --probe 2e8a:000c-0:"$PROBE_ONE"
-    probe-rs reset --probe 2e8a:000c-0:"$PROBE_TWO"
+    probe-rs reset --probe "$PROBE_USB_ID:$PROBE_ONE"
+    probe-rs reset --probe "$PROBE_USB_ID:$PROBE_TWO"
 }
 
 function reap_old_gds() {
@@ -102,34 +103,27 @@ function print_gds_startup_log() {
     fi
 }
 
-function wait_for_serial_ports() {
-    local board_id="$1"
-    local control_port="$2"
-    local data_port="$3"
-
-    trap "echo 'Timed out waiting for USB serial port after flash $board_id' 1>&2" EXIT
-    timeout 5 bash -c 'until [ -e "$1" ] && [ -e "$2" ]; do sleep 0.1; done' bash "$control_port" "$data_port"
+function wait_for_control_port() {
+    trap "echo 'Timed out waiting for board one USB control port after flash' 1>&2" EXIT
+    timeout 5 bash -c 'until [ -e "$1" ]; do sleep 0.1; done' bash "$BOARD_ONE_CONTROL_PORT"
     trap - EXIT
+
+    # Serial port symlinks seem to appear and disappear briefly after device is first
+    # flashed. Can't find a good event to block on to be sure they're stable.
+    # `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
+    # `sleep 1` and forget about it.
+    sleep 1
 }
 
 if [ "$NUM_BOARDS" = 2 ]; then
     flash_both_with_probe
-    wait_for_serial_ports "$BOARD_ONE" "$BOARD_ONE_CONTROL_PORT" "$BOARD_ONE_DATA_PORT"
-    wait_for_serial_ports "$BOARD_TWO" "$BOARD_TWO_CONTROL_PORT" "$BOARD_TWO_DATA_PORT"
 else
     flash_with_probe "$BOARD_ONE" "$PROBE_ONE"
-    wait_for_serial_ports "$BOARD_ONE" "$BOARD_ONE_CONTROL_PORT" "$BOARD_ONE_DATA_PORT"
 fi
 
+wait_for_control_port
 
 reap_old_gds
-
-# Serial port symlinks seem to appear and disappear briefly after device is first
-# flashed. Can't find a good event to block on to be sure they're stable.
-# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
-# `sleep 1` and forget about it.
-
-sleep 1
 
 GDS_LOG=$(mktemp)
 
@@ -154,15 +148,33 @@ trap "rm -f \"$GDS_LOG\"; trap '' SIGTERM; kill -- -$$ 2>/dev/null;" SIGINT SIGT
 if [ "$NUM_BOARDS" -eq 1 ]; then
     case "$SUITE" in
         main)
-            pytest --data-port-one="$BOARD_ONE_DATA_PORT" test/one-board/main_test.py
+            pytest \
+                --probe-usb-id="$PROBE_USB_ID" \
+                --probe-one="$PROBE_ONE" \
+                --data-port-one="$BOARD_ONE_DATA_PORT" \
+                test/one-board/main_test.py
             ;;
         fs)
-            pytest --data-port-one="$BOARD_ONE_DATA_PORT" test/one-board/fs_test.py
+            pytest \
+                --probe-usb-id="$PROBE_USB_ID" \
+                --probe-one="$PROBE_ONE" \
+                --data-port-one="$BOARD_ONE_DATA_PORT" \
+                test/one-board/fs_test.py
             ;;
         all)
-            pytest --data-port-one="$BOARD_ONE_DATA_PORT" test/one-board
+            pytest \
+                --probe-usb-id="$PROBE_USB_ID" \
+                --probe-one="$PROBE_ONE" \
+                --data-port-one="$BOARD_ONE_DATA_PORT" \
+                test/one-board
             ;;
     esac
 else
-    pytest --data-port-one="$BOARD_ONE_DATA_PORT" --data-port-two="$BOARD_TWO_DATA_PORT" test/two-board/two_board_test.py
+    pytest \
+        --probe-usb-id="$PROBE_USB_ID" \
+        --probe-one="$PROBE_ONE" \
+        --probe-two="$PROBE_TWO" \
+        --data-port-one="$BOARD_ONE_DATA_PORT" \
+        --data-port-two="$BOARD_TWO_DATA_PORT" \
+        test/two-board/two_board_test.py
 fi
