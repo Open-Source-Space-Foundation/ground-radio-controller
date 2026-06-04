@@ -28,3 +28,5 @@ When you are writing tests:
 - Each test should only test ONE THING. And do the minimal amount to test that
   one thing.
 
+When you are writing code, overall, try to minimize the size of the overall
+diff relative to upstream.
