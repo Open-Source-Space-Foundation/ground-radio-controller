@@ -23,11 +23,14 @@ GDS_ARGS := \
 	--output-unframed-data unframed-data.log \
 	--gui none
 
-flash1:
+build:
+	fprime-util build
+
+flash1: build
 	probe-rs download --probe "$(PROBE_USB_ID):$(PROBE_ONE)" ./build-artifacts/zephyr.elf
 	probe-rs reset --probe "$(PROBE_USB_ID):$(PROBE_ONE)"
 
-flash2:
+flash2: build
 	probe-rs download --probe "$(PROBE_USB_ID):$(PROBE_ONE)" ./build-artifacts/zephyr.elf & \
 	probe-rs download --probe "$(PROBE_USB_ID):$(PROBE_TWO)" ./build-artifacts/zephyr.elf & \
 	wait; \
@@ -63,4 +66,4 @@ bft1 bft1-main bft1-fs bft2:
 	sleep 1; \
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
-.PHONY: flash1 flash2 bft1 bft1-main bft1-fs bft2 check-no-gds
+.PHONY: build flash1 flash2 bft1 bft1-main bft1-fs bft2 check-no-gds
