@@ -32,28 +32,25 @@ $(find -name diffconfig) $(find -name before) $(find -name after)
 
 # Workflow
 
-I wrote `bft.sh` to speed the red-green-refactor loop.
+The Makefile has some targets to speed the red-green-refactor loop.
 
-- `./bft.sh 1` runs all one-board tests
-- `./bft.sh 1 main` runs one-board main tests only
-- `./bft.sh 1 fs` runs one-board filesystem tests only
-- `./bft.sh 2` runs two-board tests
+- `make bft1` runs all one-board tests
+- `make bft1-main` runs one-board main tests only
+- `make bft1-fs` runs one-board filesystem tests only
+- `make bft2` runs two-board tests
 
-`bft.sh` requires a debug probe USB ID and debug probe serials. It uses
-`probe-rs` to flash boards and to reset board hardware before each test.
+The `bft` targets require a debug probe USB ID and debug probe serials. They
+use `probe-rs` to flash boards and to reset board hardware before each test.
 Install the CLI with:
 
 ```
 cargo install probe-rs-tools --locked
 ```
 
-`bft.sh` expects `probe-rs` to already be on the caller's `PATH`; putting
-`$HOME/.cargo/bin` on `PATH` is the user's shell configuration responsibility.
-
 To install software without a debug probe, build with `fprime-util build`, put
 the board in BOOTSEL mode, and copy `./build-artifacts/zephyr.uf2` to the
-mounted `RP2350` volume. This manual UF2 workflow is not supported by `bft.sh`;
-running tests requires a debug probe.
+mounted `RP2350` volume. This manual UF2 workflow is not supported by `bft`
+targets; running tests requires a debug probe.
 
 ## Test Config
 
@@ -86,7 +83,7 @@ $ ls /dev/serial/by-id/usb-Raspberry_Pi_Debug_Probe__CMSIS-DAP__*
 ```
 
 This controls which board is the primary and which is the secondary for tests.
-`./bft.sh 1` requires `PROBE_ONE`; `./bft.sh 2` requires both `PROBE_ONE` and
+`make bft1` requires `PROBE_ONE`; `make bft2` requires both `PROBE_ONE` and
 `PROBE_TWO`.
 
 ## GDS Notes

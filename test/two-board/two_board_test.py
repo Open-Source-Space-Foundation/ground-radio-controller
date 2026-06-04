@@ -1,6 +1,6 @@
 """
-These tests require another board be flashed with radio controller software and
-also connected to the PC. Should be run via `bft.sh`.
+These tests require two boards be flashed with radio controller software and
+connected to the PC.
 """
 
 import time
