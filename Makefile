@@ -1,4 +1,3 @@
-.ONESHELL:
 SHELL := /bin/bash
 .SHELLFLAGS = -euo pipefail -c
 
@@ -22,16 +21,22 @@ GDS_ARGS := \
 	--gui none
 
 check-no-gds:
-	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then
+	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then \
 		echo 'There are running GDS processes which will interfere with tests.' \
-			'Please kill with `pkill -f "[f]prime-gds|[f]prime_gds"`' 1>&2
-		exit 1
+			'Please kill with `pkill -f "[f]prime-gds|[f]prime_gds"`' 1>&2; \
+		exit 1; \
 	fi
 
 bft: check-no-gds
-	setsid fprime-gds $(GDS_ARGS) 2>&1 &
-	GDS_PID=$$!
-	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT
+	# Serial port symlinks seem to appear and disappear briefly after device is first
+	# flashed. Can't find a good event to block on to be sure they're stable.
+	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
+	# `sleep 1` and forget about it.
+
+	setsid fprime-gds $(GDS_ARGS) 2>&1 & \
+	GDS_PID=$$!; \
+	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT; \
+	sleep 1; \
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS)
 
 .PHONY: bft check-no-gds
