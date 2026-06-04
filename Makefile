@@ -1,4 +1,5 @@
 .ONESHELL:
+SHELL := /bin/bash
 .SHELLFLAGS = -euo pipefail -c
 
 include testconfig
@@ -28,7 +29,9 @@ check-no-gds:
 	fi
 
 bft: check-no-gds
-	fprime-gds $(GDS_ARGS) 2>&1 &
+	setsid fprime-gds $(GDS_ARGS) 2>&1 &
+	GDS_PID=$$!
+	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS)
 
 .PHONY: bft check-no-gds
