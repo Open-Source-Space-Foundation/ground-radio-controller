@@ -23,7 +23,10 @@ GDS_ARGS := \
 	--output-unframed-data unframed-data.log \
 	--gui none
 
-build:
+build-fprime-automatic-zephyr:
+	fprime-util generate
+
+build: build-fprime-automatic-zephyr
 	fprime-util build
 
 flash1: build
