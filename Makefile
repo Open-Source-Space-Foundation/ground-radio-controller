@@ -29,6 +29,9 @@ clean:
 build-fprime-automatic-zephyr:
 	fprime-util generate
 
+generate-force:
+	fprime-util generate -f
+
 build: build-fprime-automatic-zephyr
 	fprime-util build
 
@@ -72,4 +75,4 @@ bft1 bft1-main bft1-fs bft2:
 	sleep 1; \
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
-.PHONY: clean build flash1 flash2 bft1 bft1-main bft1-fs bft2 check-no-gds
+.PHONY: clean generate-force build flash1 flash2 bft1 bft1-main bft1-fs bft2 check-no-gds
