@@ -23,6 +23,17 @@ GDS_ARGS := \
 	--output-unframed-data unframed-data.log \
 	--gui none
 
+flash1:
+	probe-rs download --probe "$(PROBE_USB_ID):$(PROBE_ONE)" ./build-artifacts/zephyr.elf
+	probe-rs reset --probe "$(PROBE_USB_ID):$(PROBE_ONE)"
+
+flash2:
+	probe-rs download --probe "$(PROBE_USB_ID):$(PROBE_ONE)" ./build-artifacts/zephyr.elf & \
+	probe-rs download --probe "$(PROBE_USB_ID):$(PROBE_TWO)" ./build-artifacts/zephyr.elf & \
+	wait; \
+	probe-rs reset --probe "$(PROBE_USB_ID):$(PROBE_ONE)"; \
+	probe-rs reset --probe "$(PROBE_USB_ID):$(PROBE_TWO)"
+
 check-no-gds:
 	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then \
 		echo 'There are running GDS processes which will interfere with tests.' \
@@ -37,7 +48,10 @@ bft1-fs: PYTEST_TESTS := test/one-board/fs_test.py
 bft2: PYTEST_CFG_ARGS := $(PYTEST_TWO_BOARD_CFG_ARGS)
 bft2: PYTEST_TESTS := test/two-board/two_board_test.py
 
-bft1 bft1-main bft1-fs bft2: check-no-gds
+bft1 bft1-main bft1-fs: check-no-gds flash1
+bft2: check-no-gds flash2
+
+bft1 bft1-main bft1-fs bft2:
 	# Serial port symlinks seem to appear and disappear briefly after device is first
 	# flashed. Can't find a good event to block on to be sure they're stable.
 	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
@@ -49,4 +63,4 @@ bft1 bft1-main bft1-fs bft2: check-no-gds
 	sleep 1; \
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
-.PHONY: bft1 bft1-main bft1-fs bft2 check-no-gds
+.PHONY: flash1 flash2 bft1 bft1-main bft1-fs bft2 check-no-gds
