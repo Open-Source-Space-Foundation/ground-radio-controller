@@ -7,10 +7,13 @@ BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_
 BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
 BOARD_TWO_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_TWO)-if02
 
-PYTEST_CFG_ARGS := \
+PYTEST_ONE_BOARD_CFG_ARGS := \
 	--probe-usb-id="$(PROBE_USB_ID)" \
 	--probe-one="$(PROBE_ONE)" \
-	--data-port-one="$(BOARD_ONE_DATA_PORT)" \
+	--data-port-one="$(BOARD_ONE_DATA_PORT)"
+
+PYTEST_TWO_BOARD_CFG_ARGS := \
+	$(PYTEST_ONE_BOARD_CFG_ARGS) \
 	--probe-two="$(PROBE_TWO)" \
 	--data-port-two="$(BOARD_TWO_DATA_PORT)"
 
@@ -27,7 +30,10 @@ check-no-gds:
 		exit 1; \
 	fi
 
-bft: check-no-gds
+bft1: PYTEST_CFG_ARGS := $(PYTEST_ONE_BOARD_CFG_ARGS)
+bft2: PYTEST_CFG_ARGS := $(PYTEST_TWO_BOARD_CFG_ARGS)
+
+bft1 bft2: check-no-gds
 	# Serial port symlinks seem to appear and disappear briefly after device is first
 	# flashed. Can't find a good event to block on to be sure they're stable.
 	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
@@ -39,4 +45,4 @@ bft: check-no-gds
 	sleep 1; \
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS)
 
-.PHONY: bft check-no-gds
+.PHONY: bft1 bft2 check-no-gds
