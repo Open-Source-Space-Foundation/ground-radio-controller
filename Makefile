@@ -30,10 +30,14 @@ check-no-gds:
 		exit 1; \
 	fi
 
-bft1: PYTEST_CFG_ARGS := $(PYTEST_ONE_BOARD_CFG_ARGS)
+bft1 bft1-main bft1-fs: PYTEST_CFG_ARGS := $(PYTEST_ONE_BOARD_CFG_ARGS)
+bft1: PYTEST_TESTS := test/one-board
+bft1-main: PYTEST_TESTS := test/one-board/main_test.py
+bft1-fs: PYTEST_TESTS := test/one-board/fs_test.py
 bft2: PYTEST_CFG_ARGS := $(PYTEST_TWO_BOARD_CFG_ARGS)
+bft2: PYTEST_TESTS := test/two-board/two_board_test.py
 
-bft1 bft2: check-no-gds
+bft1 bft1-main bft1-fs bft2: check-no-gds
 	# Serial port symlinks seem to appear and disappear briefly after device is first
 	# flashed. Can't find a good event to block on to be sure they're stable.
 	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
@@ -43,6 +47,6 @@ bft1 bft2: check-no-gds
 	GDS_PID=$$!; \
 	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT; \
 	sleep 1; \
-	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS)
+	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
-.PHONY: bft1 bft2 check-no-gds
+.PHONY: bft1 bft1-main bft1-fs bft2 check-no-gds
