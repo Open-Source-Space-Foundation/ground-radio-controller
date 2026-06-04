@@ -50,7 +50,7 @@ def test_link_one_to_two_single_252_byte_write(
         _assert_no_warnings(fprime_test_api)
 
 
-def test_link_one_to_two_1024_bytes_one_byte_writes(
+def test_link_one_to_two_4096_bytes_one_byte_writes(
     fprime_test_api, data_port_one, data_port_two
 ):
     try:
@@ -60,7 +60,7 @@ def test_link_one_to_two_1024_bytes_one_byte_writes(
         # kHz, CR 4/5) at a 252-byte payload, which yields 252 * 8 / 0.90163 ~=
         # 2236 bits/s. Keep the test below that sustained link rate so it models
         # what the radio can drain without relying on extra bridge buffering.
-        sent = bytes(range(256)) * 4
+        sent = bytes(range(256)) * 16
         bitrate = 2000
         byte_period_seconds = 8 / bitrate
 
