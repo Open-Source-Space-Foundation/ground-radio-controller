@@ -23,6 +23,9 @@ GDS_ARGS := \
 	--output-unframed-data unframed-data.log \
 	--gui none
 
+clean:
+	fprime-util purge -f
+
 build-fprime-automatic-zephyr:
 	fprime-util generate
 
@@ -69,4 +72,4 @@ bft1 bft1-main bft1-fs bft2:
 	sleep 1; \
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
-.PHONY: build flash1 flash2 bft1 bft1-main bft1-fs bft2 check-no-gds
+.PHONY: clean build flash1 flash2 bft1 bft1-main bft1-fs bft2 check-no-gds
