@@ -5,14 +5,8 @@ import time
 from pathlib import Path
 
 
-SERIAL_READ_TIMEOUT_SECONDS = 2.0
-RESET_TIMEOUT_SECONDS = 10.0
-RESET_READY_EVENT = "CdhCore.version.FrameworkVersion"
-RESET_SYNC_COMMAND = "CdhCore.cmdDisp.CMD_NO_OP"
-
-
 def _open_data_port(port: str) -> serial.Serial:
-    tty = serial.Serial(port=port, timeout=SERIAL_READ_TIMEOUT_SECONDS)
+    tty = serial.Serial(port=port, timeout=2.0)
     tty.reset_input_buffer()
     return tty
 
@@ -73,7 +67,7 @@ def pytest_generate_tests(metafunc):
 
 def _wait_for_data_ports(data_ports):
     paths = [Path(data_port) for data_port in data_ports]
-    deadline = time.monotonic() + RESET_TIMEOUT_SECONDS
+    deadline = time.monotonic() + 10.0
     while time.monotonic() < deadline and not all(path.exists() for path in paths):
         time.sleep(0.1)
 
@@ -85,20 +79,23 @@ def _wait_for_data_ports(data_ports):
 
 
 def _wait_for_gds(api):
-    api.clear_histories()
     if (
         api.await_event(
-            RESET_READY_EVENT,
-            start=0,
-            timeout=int(RESET_TIMEOUT_SECONDS),
+            # FrameworkVersion is emitted during boot, so this confirms reset finished.
+            # The default start="NOW" ignores stale events from earlier resets.
+            "CdhCore.version.FrameworkVersion",
+            timeout=10,
         )
         is None
     ):
-        pytest.fail(f"Timed out waiting for {RESET_READY_EVENT} after board reset")
+        pytest.fail(
+            "Timed out waiting for CdhCore.version.FrameworkVersion after board reset"
+        )
 
     api.send_and_assert_command(
-        RESET_SYNC_COMMAND,
-        timeout=int(RESET_TIMEOUT_SECONDS),
+        # NO_OP confirms GDS can dispatch commands before the test starts.
+        "CdhCore.cmdDisp.CMD_NO_OP",
+        timeout=10,
     )
 
 
@@ -133,7 +130,7 @@ def reset_boards_between_tests(request):
                 f"{probe_usb_id}:{probe_serial}",
             ],
             check=True,
-            timeout=RESET_TIMEOUT_SECONDS,
+            timeout=10.0,
         )
 
     _wait_for_data_ports(data_ports)
