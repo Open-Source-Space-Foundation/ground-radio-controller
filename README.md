@@ -39,9 +39,15 @@ The Makefile has some targets to speed the red-green-refactor loop.
 - `make bft1-fs` runs one-board filesystem tests only
 - `make bft2` runs two-board tests
 - `make gds` launches GDS in the foreground with no GUI
+- `make test1` runs all one-board tests without building, flashing, or launching GDS
+- `make test1-main` runs one-board main tests only without building, flashing, or launching GDS
+- `make test1-fs` runs one-board filesystem tests only without building, flashing, or launching GDS
+- `make test2` runs two-board tests without building, flashing, or launching GDS
 
 The `bft` targets require a debug probe USB ID and debug probe serials. They
 use `probe-rs` to flash boards and to reset board hardware before each test.
+The `test` targets assume the boards are already flashed and GDS is already
+running; pytest still uses `probe-rs` to reset board hardware between tests.
 Install the CLI with:
 
 ```

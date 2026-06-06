@@ -56,17 +56,22 @@ check-no-gds:
 gds: check-no-gds
 	fprime-gds $(GDS_ARGS)
 
-bft1 bft1-main bft1-fs: PYTEST_CFG_ARGS := $(PYTEST_ONE_BOARD_CFG_ARGS)
-bft1: PYTEST_TESTS := test/one-board
-bft1-main: PYTEST_TESTS := test/one-board/main_test.py
-bft1-fs: PYTEST_TESTS := test/one-board/fs_test.py
-bft2: PYTEST_CFG_ARGS := $(PYTEST_TWO_BOARD_CFG_ARGS)
-bft2: PYTEST_TESTS := test/two-board/two_board_test.py
+ONE_BOARD_TEST_TARGETS := bft1 bft1-main bft1-fs test1 test1-main test1-fs
+TWO_BOARD_TEST_TARGETS := bft2 test2
+BFT_TARGETS := bft1 bft1-main bft1-fs bft2
+TEST_TARGETS := test1 test1-main test1-fs test2
+
+$(ONE_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_ONE_BOARD_CFG_ARGS)
+$(TWO_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_TWO_BOARD_CFG_ARGS)
+bft1 test1: PYTEST_TESTS := test/one-board
+bft1-main test1-main: PYTEST_TESTS := test/one-board/main_test.py
+bft1-fs test1-fs: PYTEST_TESTS := test/one-board/fs_test.py
+bft2 test2: PYTEST_TESTS := test/two-board/two_board_test.py
 
 bft1 bft1-main bft1-fs: check-no-gds flash1
 bft2: check-no-gds flash2
 
-bft1 bft1-main bft1-fs bft2:
+$(BFT_TARGETS):
 	# Serial port symlinks seem to appear and disappear briefly after device is first
 	# flashed. Can't find a good event to block on to be sure they're stable.
 	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
@@ -78,4 +83,7 @@ bft1 bft1-main bft1-fs bft2:
 	sleep 1; \
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
-.PHONY: clean generate-force build flash1 flash2 gds bft1 bft1-main bft1-fs bft2 check-no-gds
+$(TEST_TARGETS):
+	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+
+.PHONY: clean generate-force build flash1 flash2 gds $(BFT_TARGETS) $(TEST_TARGETS) check-no-gds
