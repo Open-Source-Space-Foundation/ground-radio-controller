@@ -48,6 +48,12 @@ def pytest_addoption(parser):
         default="",
         help="debug probe serial for board two",
     )
+    parser.addoption(
+        "--no-reset-before-test",
+        action="store_true",
+        default=False,
+        help="do not reset board hardware before each test",
+    )
 
 
 def pytest_generate_tests(metafunc):
@@ -100,12 +106,18 @@ def _wait_for_gds(api):
 def reset_boards_between_tests(request):
     config = request.config
     data_ports = [config.getoption("--data-port-one")[0]]
-    probe_usb_id = config.getoption("--probe-usb-id")
-    probe_serials = [config.getoption("--probe-one")]
 
     data_port_two = config.getoption("--data-port-two")
     if data_port_two:
         data_ports.append(data_port_two[0])
+
+    if config.getoption("--no-reset-before-test"):
+        _wait_for_data_ports(data_ports)
+        return
+
+    probe_usb_id = config.getoption("--probe-usb-id")
+    probe_serials = [config.getoption("--probe-one")]
+    if data_port_two:
         probe_serials.append(config.getoption("--probe-two"))
 
     api = None
