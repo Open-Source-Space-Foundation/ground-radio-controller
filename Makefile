@@ -53,6 +53,9 @@ check-no-gds:
 		exit 1; \
 	fi
 
+gds: check-no-gds
+	fprime-gds $(GDS_ARGS)
+
 bft1 bft1-main bft1-fs: PYTEST_CFG_ARGS := $(PYTEST_ONE_BOARD_CFG_ARGS)
 bft1: PYTEST_TESTS := test/one-board
 bft1-main: PYTEST_TESTS := test/one-board/main_test.py
@@ -75,4 +78,4 @@ bft1 bft1-main bft1-fs bft2:
 	sleep 1; \
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
-.PHONY: clean generate-force build flash1 flash2 bft1 bft1-main bft1-fs bft2 check-no-gds
+.PHONY: clean generate-force build flash1 flash2 gds bft1 bft1-main bft1-fs bft2 check-no-gds

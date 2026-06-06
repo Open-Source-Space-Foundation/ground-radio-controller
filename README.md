@@ -38,6 +38,7 @@ The Makefile has some targets to speed the red-green-refactor loop.
 - `make bft1-main` runs one-board main tests only
 - `make bft1-fs` runs one-board filesystem tests only
 - `make bft2` runs two-board tests
+- `make gds` launches GDS in the foreground with no GUI
 
 The `bft` targets require a debug probe USB ID and debug probe serials. They
 use `probe-rs` to flash boards and to reset board hardware before each test.
