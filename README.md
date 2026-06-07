@@ -115,5 +115,15 @@ access to tty ports and `plugdev` for access to debug adapter.
 
 ## Debugging
 
-You can debug with `probe-rs gdb --gdb gdb-multiarch
-build-artifacts/zephyr.elf`
+You can debug with `make gdb1` or `make gdb2`. These targets use probe-rs
+under the hood. Be advised there's a probe-rs bug #3805 in v0.31.0 meaning you
+need v0.30.0 with dependencies locked so it doesn't crash (`cargo install
+probe-rs-tools --locked --version 0.30.0`). And another bug #3965 meaning it's
+still a bit painful to use. PyOCD and OpenOCD are even worse though.
+
+If you want to access the RTT logging backend for more reliable logging under
+race conditions, crashes, etc. then you can use `make attach1` and `make
+attach2` to connect to those streams.
+
+There are targets `test1`, `test2` for just running tests and `gds` for
+starting running the GDS manually.
