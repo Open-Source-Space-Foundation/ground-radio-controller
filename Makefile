@@ -56,8 +56,7 @@ check-no-gds:
 gds: check-no-gds
 	fprime-gds \
 		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
-		--uart-skip-port-check \
-		--output-unframed-data -
+		--uart-skip-port-check
 
 ONE_BOARD_TEST_TARGETS := bft1 bft1-main bft1-fs test1 test1-main test1-fs
 TWO_BOARD_TEST_TARGETS := bft2 test2
