@@ -49,6 +49,17 @@ submodules: ## Initialize and update git submodules
 			echo "❌ Unable to apply patches/fprime-gds-version.patch"; exit 1; \
 		fi; \
 	fi
+	@if [ -f patches/zephyr-uart-tx-fix.patch ]; then \
+		echo "Applying zephyr-uart-tx-fix patch..."; \
+		cd lib/fprime-zephyr && \
+		if git apply --check ../../patches/zephyr-uart-tx-fix.patch 2>/dev/null; then \
+			git apply ../../patches/zephyr-uart-tx-fix.patch && echo "✓ Applied zephyr-uart-tx-fix patch"; \
+		elif git apply --reverse --check ../../patches/zephyr-uart-tx-fix.patch 2>/dev/null; then \
+			echo "⚠ Patch already applied"; \
+		else \
+			echo "❌ Unable to apply patches/zephyr-uart-tx-fix.patch"; exit 1; \
+		fi; \
+	fi
 
 .PHONY: fprime-venv
 fprime-venv: uv ## Create the Python virtual environment and install requirements
