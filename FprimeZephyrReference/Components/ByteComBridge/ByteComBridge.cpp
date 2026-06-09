@@ -15,7 +15,6 @@ namespace Components {
 
 ByteComBridge ::ByteComBridge(const char* const compName)
     : ByteComBridgeComponentBase(compName),
-      m_byteStreamDriverReady(false),
       m_comTxReady(false),
       m_txCircularBufferStorage{},
       m_txCircularBuffer{},
@@ -48,12 +47,11 @@ void ByteComBridge::requestSendQueuedData() {
 
 void ByteComBridge::trySendQueuedData_internalInterfaceHandler() {
     this->m_trySendQueuedDataPending = false;
-    if (!this->m_byteStreamDriverReady ||
-        // The F´ communication adapter interface requires dataReturnOut for a
-        // transmitted buffer to happen before the corresponding comStatusOut; see
-        // lib/fprime/docs/reference/communication-adapter-interface.md. That makes
-        // comTxReady the gate for reusing m_comFrameStorage on the next send.
-        !this->m_comTxReady || this->m_txCircularBuffer.get_allocated_size() == 0) {
+    // The F´ communication adapter interface requires dataReturnOut for a
+    // transmitted buffer to happen before the corresponding comStatusOut; see
+    // lib/fprime/docs/reference/communication-adapter-interface.md. That makes
+    // comTxReady the gate for reusing m_comFrameStorage on the next send.
+    if (!this->m_comTxReady || this->m_txCircularBuffer.get_allocated_size() == 0) {
         return;
     }
 
@@ -73,9 +71,7 @@ void ByteComBridge::trySendQueuedData_internalInterfaceHandler() {
 // Handler implementations for typed input ports
 // ----------------------------------------------------------------------
 
-void ByteComBridge ::byteStreamReady_handler(FwIndexType portNum) {
-    this->m_byteStreamDriverReady = true;
-}
+void ByteComBridge ::byteStreamReady_handler(FwIndexType portNum) {}
 
 void ByteComBridge ::byteStreamRecv_handler(FwIndexType portNum,
                                             Fw::Buffer& buffer,
@@ -84,8 +80,6 @@ void ByteComBridge ::byteStreamRecv_handler(FwIndexType portNum,
         this->byteStreamRecvReturnOut_out(0, buffer);
         return;
     }
-
-    FW_ASSERT(this->m_byteStreamDriverReady);
 
     this->enqueueByteStreamData(buffer);
     this->byteStreamRecvReturnOut_out(0, buffer);

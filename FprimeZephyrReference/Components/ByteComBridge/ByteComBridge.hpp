@@ -29,7 +29,6 @@ class ByteComBridge final : public ByteComBridgeComponentBase {
     ~ByteComBridge();
 
   private:
-    bool m_byteStreamDriverReady;
     bool m_comTxReady;
     std::atomic<bool> m_trySendQueuedDataPending;
     U8 m_txCircularBufferStorage[CIRCULAR_BUFFER_SIZE];
