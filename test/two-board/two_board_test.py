@@ -62,7 +62,7 @@ def test_link_one_to_two_16k_bytes_one_byte_writes(
         sent = bytes(range(256)) * 64
         bitrate = 2000
         byte_period_seconds = 8 / bitrate
-        received = []
+        received = b""
 
         for byte in sent:
             assert data_port_one.write(bytes([byte])) == 1
@@ -86,7 +86,7 @@ def test_link_two_to_one_16k_bytes_one_byte_writes(
         sent = bytes(range(256)) * 64
         bitrate = 2000
         byte_period_seconds = 8 / bitrate
-        received = []
+        received = b""
 
         for byte in sent:
             assert data_port_two.write(bytes([byte])) == 1
