@@ -50,7 +50,7 @@ def test_link_one_to_two_single_252_byte_write(
         _assert_no_warnings(fprime_test_api)
 
 
-def test_link_one_to_two_4096_bytes_one_byte_writes(
+def test_link_one_to_two_16k_bytes_one_byte_writes(
     fprime_test_api, data_port_one, data_port_two
 ):
     try:
@@ -59,16 +59,18 @@ def test_link_one_to_two_4096_bytes_one_byte_writes(
         # gives 901.63 ms time on air for the deployed modem settings (SF8, 125
         # kHz, CR 4/5) at a 252-byte payload, which yields 252 * 8 / 0.90163 ~=
         # 2236 bits/s. Keep the test below that sustained link rate.
-        sent = bytes(range(256)) * 16
+        sent = bytes(range(256)) * 64
         bitrate = 2000
         byte_period_seconds = 8 / bitrate
+        received = []
 
         for byte in sent:
             assert data_port_one.write(bytes([byte])) == 1
             data_port_one.flush()
+            received += data_port_two.read_all()
             time.sleep(byte_period_seconds)
 
-        received = data_port_two.read(len(sent))
+        received += data_port_two.read(len(sent) - len(received))
         assert received == sent, (
             f"Expected {len(sent)} bytes from board two, received {len(received)}"
         )
@@ -76,21 +78,23 @@ def test_link_one_to_two_4096_bytes_one_byte_writes(
         _assert_no_warnings(fprime_test_api)
 
 
-def test_link_two_to_one_4096_bytes_one_byte_writes(
+def test_link_two_to_one_16k_bytes_one_byte_writes(
     fprime_test_api, data_port_one, data_port_two
 ):
     try:
         # See previous test for explanation of magic numbers
-        sent = bytes(range(256)) * 16
+        sent = bytes(range(256)) * 64
         bitrate = 2000
         byte_period_seconds = 8 / bitrate
+        received = []
 
         for byte in sent:
             assert data_port_two.write(bytes([byte])) == 1
             data_port_two.flush()
+            received += data_port_one.read_all()
             time.sleep(byte_period_seconds)
 
-        received = data_port_one.read(len(sent))
+        received += data_port_one.read(len(sent) - len(received))
         assert received == sent, (
             f"Expected {len(sent)} bytes from board two, received {len(received)}"
         )
