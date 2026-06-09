@@ -49,8 +49,8 @@ void ByteComBridge::trySendQueuedData_internalInterfaceHandler() {
     this->m_trySendQueuedDataPending = false;
     // The F´ communication adapter interface requires dataReturnOut for a
     // transmitted buffer to happen before the corresponding comStatusOut; see
-    // lib/fprime/docs/reference/communication-adapter-interface.md. That makes
-    // comTxReady the gate for reusing m_comFrameStorage on the next send.
+    // lib/fprime/docs/reference/communication-adapter-interface.md. So we use
+    // the later comTxReady as the gate for reusing m_comFrameStorage.
     if (!this->m_comTxReady || this->m_txCircularBuffer.get_allocated_size() == 0) {
         return;
     }
