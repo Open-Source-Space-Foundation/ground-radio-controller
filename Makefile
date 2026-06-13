@@ -48,19 +48,21 @@ gds: check-no-gds
 		--uart-skip-port-check
 
 ONE_BOARD_TEST_TARGETS := bft1 bft1-main bft1-fs test1 test1-main test1-fs
-TWO_BOARD_TEST_TARGETS := bft2 test2
-BFT_TARGETS := bft1 bft1-main bft1-fs bft2
-TEST_TARGETS := test1 test1-main test1-fs test2
+TWO_BOARD_TEST_TARGETS := bft2 bft2-main bft2-long test2 test2-main test2-long
+BFT_TARGETS := bft1 bft1-main bft1-fs bft2 bft2-main bft2-long
+TEST_TARGETS := test1 test1-main test1-fs test2 test2-main test2-long
 
 $(ONE_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_ONE_BOARD_CFG_ARGS)
 $(TWO_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_TWO_BOARD_CFG_ARGS)
 bft1 test1: PYTEST_TESTS := test/one-board
 bft1-main test1-main: PYTEST_TESTS := test/one-board/main_test.py
 bft1-fs test1-fs: PYTEST_TESTS := test/one-board/fs_test.py
-bft2 test2: PYTEST_TESTS := test/two-board/two_board_test.py
+bft2 test2: PYTEST_TESTS := test/two-board/
+bft2-main test2-main: PYTEST_TESTS := test/two-board/main_test.py
+bft2-long test2-long: PYTEST_TESTS := test/two-board/long_test.py
 
 bft1 bft1-main bft1-fs: check-no-gds flash1
-bft2: check-no-gds flash2
+bft2 bft2-main bft2-long: check-no-gds flash2
 
 $(BFT_TARGETS):
 	# Serial port symlinks seem to appear and disappear briefly after device is first
