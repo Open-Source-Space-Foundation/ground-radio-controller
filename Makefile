@@ -35,17 +35,6 @@ generate-force:
 build: build-fprime-automatic-zephyr
 	fprime-util build
 
-flash1: build
-	probe-rs download --probe "$(PROBE_USB_ID):$(PROBE_ONE)" ./build-artifacts/zephyr.elf
-	probe-rs reset --probe "$(PROBE_USB_ID):$(PROBE_ONE)"
-
-flash2: build
-	probe-rs download --probe "$(PROBE_USB_ID):$(PROBE_ONE)" ./build-artifacts/zephyr.elf & \
-	probe-rs download --probe "$(PROBE_USB_ID):$(PROBE_TWO)" ./build-artifacts/zephyr.elf & \
-	wait; \
-	probe-rs reset --probe "$(PROBE_USB_ID):$(PROBE_ONE)"; \
-	probe-rs reset --probe "$(PROBE_USB_ID):$(PROBE_TWO)"
-
 check-no-gds:
 	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then \
 		echo 'There are running GDS processes which will interfere with tests.' \
@@ -88,8 +77,14 @@ $(BFT_TARGETS):
 $(TEST_TARGETS):
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
-gdb1 attach1: ACTIVE_PROBE := $(PROBE_ONE)
-gdb2 attach2: ACTIVE_PROBE := $(PROBE_TWO)
+gdb1 attach1 flash1: ACTIVE_PROBE := $(PROBE_ONE)
+gdb2 attach2 flash2only: ACTIVE_PROBE := $(PROBE_TWO)
+
+flash1 flash2only: build
+	probe-rs download --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)" ./build-artifacts/zephyr.elf
+	probe-rs reset --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)"
+
+flash2: flash1 flash2only
 
 gdb1 gdb2:
 	probe-rs gdb --gdb gdb-multiarch --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
