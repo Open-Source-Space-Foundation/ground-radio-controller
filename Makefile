@@ -47,6 +47,9 @@ gds: check-no-gds
 		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
 		--uart-skip-port-check
 
+menuconfig:
+	fprime-util build --target menuconfig
+
 ONE_BOARD_TEST_TARGETS := bft1 bft1-main bft1-fs test1 test1-main test1-fs
 TWO_BOARD_TEST_TARGETS := bft2 bft2-main bft2-long test2 test2-main test2-long
 BFT_TARGETS := bft1 bft1-main bft1-fs bft2 bft2-main bft2-long
@@ -95,4 +98,4 @@ attach1 attach2:
 	probe-rs attach --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
 
 
-.PHONY: clean generate-force build flash1 flash2 gds gdb1 gdb2 attach1 attach2 $(BFT_TARGETS) $(TEST_TARGETS) check-no-gds
+.PHONY: clean generate-force build flash1 flash2 gds gdb1 gdb2 attach1 attach2 $(BFT_TARGETS) $(TEST_TARGETS) check-no-gds menuconfig
