@@ -159,6 +159,9 @@ board(s), then run the tests. They are:
 - `bft2-main` for the main two-board-tests
 - `bft2-long` for the long-running two-board tests
 
+You can run the two-board BFT targets with `-j2` to flash two boards in
+parallel.
+
 There are targets `test1`, `test2`, `test2-main`, `test2-long` that do the
 same as their BFT counterparts, but they skip the build & flash phases. They
 also do *not* start the GDS, so you must run `make gds` in another terminal
