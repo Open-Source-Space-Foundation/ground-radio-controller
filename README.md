@@ -222,3 +222,11 @@ Since I don't want to run an agent with full permissions on my personal
 account, I made a new `agent` user and put it in the `dialout` group for
 access to tty ports and `plugdev` for access to debug adapter.
 
+## PR Guidance
+
+If you're submitting a larger PR, try to follow good practices. I like
+[Godot's PR rules and
+guidelines](https://contributing.godotengine.org/en/latest/pull_requests/pull_request_guidelines.html),
+especially the sections, "Contribute one change at a time" and "Explain your
+contributions".
+
