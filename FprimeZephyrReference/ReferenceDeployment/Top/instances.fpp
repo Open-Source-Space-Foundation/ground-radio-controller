@@ -102,8 +102,13 @@ module ReferenceDeployment {
     stack size Default.STACK_SIZE \
     priority 5
 
+  # Queue must hold the worst-case in-flight set during an uplink burst: up to
+  # dataBufferManager's pool depth (8) of byteStreamRecv frames, plus the
+  # comStatusIn/comDataReturnIn the bridge generates per frame, plus any
+  # concurrent downlink comDataIn traffic. The comStatus flow control bounds
+  # this at the pool depth; 20 leaves comfortable margin above Default (10).
   instance byteComBridge: Components.ByteComBridge base id 0x10019000 \
-    queue size Default.QUEUE_SIZE \
+    queue size 20 \
     stack size Default.STACK_SIZE \
     priority 5
 
