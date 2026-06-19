@@ -29,6 +29,16 @@ zephyr_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/zephyr-workspace/modules/hal/rpi_pico/src/rp2_common/hardware_adc/include
 )
 
+# Use memory-mapped SIO for GPIO instead of the RP2350 GPIO coprocessor (CP0).
+# The rpi_pico HAL defaults PICO_USE_GPIO_COPROCESSOR=1 (HAS_GPIO_COPROCESSOR),
+# emitting `mcr p0` coprocessor instructions for gpio_set/clr_mask. With
+# CONFIG_FPU disabled, Zephyr's CPACR handling (FPU-disable + RCP/CP7 enable)
+# clobbers CP0 back to off after soc_reset_hook enabled it, so the first GPIO
+# coprocessor op (e.g. SPI chip-select during a LoRa UHF retransmit of uplinked
+# bytes) faults NOCP (UsageFault reason=33, CFSR=0x00080000) and the board
+# silently reboots. Forcing the memory-mapped path removes the CP0 dependency.
+zephyr_compile_definitions(PICO_USE_GPIO_COPROCESSOR=0)
+
 # Disable F´ framework/autocoder/app unit tests; PROVES uses GoogleTests in tests/ when present
 set(FPRIME_ENABLE_FRAMEWORK_UTS OFF CACHE BOOL "" FORCE)
 set(FPRIME_ENABLE_AUTOCODER_UTS OFF CACHE BOOL "" FORCE)
