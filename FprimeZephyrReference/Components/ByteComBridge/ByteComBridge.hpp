@@ -71,10 +71,10 @@ class ByteComBridge final : public ByteComBridgeComponentBase {
     // ----------------------------------------------------------------------
 
     //! Depth of the pending-uplink holding queue. Sized >= the dataBufferManager
-    //! pool depth (8 buffers) so this queue never fills before the buffer pool
+    //! pool depth (32 buffers) so this queue never fills before the buffer pool
     //! exhausts: pool exhaustion is what back-pressures the UART source, so the
     //! drop path below is purely defensive and should never be reached.
-    static constexpr FwSizeType PENDING_UPLINK_DEPTH = 10;
+    static constexpr FwSizeType PENDING_UPLINK_DEPTH = 32;
 
     //! Ring buffer of uplink frames awaiting a comStatus-ready LoRa link.
     Fw::Buffer m_pendingUplink[PENDING_UPLINK_DEPTH];

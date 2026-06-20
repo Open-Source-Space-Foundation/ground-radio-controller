@@ -1,138 +1,112 @@
 diff --git a/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.cpp b/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.cpp
-index e6ad992..cc76be3 100644
+index cc76be3..786a415 100644
 --- a/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.cpp
 +++ b/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.cpp
-@@ -9,6 +9,7 @@
- #include "Fw/Types/BasicTypes.hpp"
- #include "Fw/Types/Assert.hpp"
- #include <Fw/FPrimeBasicTypes.hpp>
-+#include <string.h>
- 
- namespace Zephyr {
- 
-@@ -47,10 +48,15 @@ namespace Zephyr {
+@@ -48,6 +48,7 @@ namespace Zephyr {
          uart_configure(this->m_dev, &uart_cfg);
  
          ring_buf_init(&this->m_ring_buf, RING_BUF_SIZE, this->m_ring_buf_data);
--        uart_irq_callback_user_data_set(this->m_dev, serial_cb, &this->m_ring_buf);
-+        k_sem_init(&this->m_tx_sem, 0, 1);
-+        this->m_tx_pos = 0;
-+        this->m_tx_len = 0;
-+        // Pass the full driver instance so serial_cb can access both RX ring
-+        // buffer and TX staging fields.
-+        uart_irq_callback_user_data_set(this->m_dev, serial_cb, this);
- 
-         uart_irq_rx_enable(this->m_dev);
--	    uart_irq_tx_disable(this->m_dev);
-+        uart_irq_tx_disable(this->m_dev);
- 
-         if (this->isConnected_ready_OutputPort(0)) {
-             this->ready_out(0);
-@@ -59,22 +65,45 @@ namespace Zephyr {
- 
-     void ZephyrUartDriver::serial_cb(const struct device *dev, void *user_data)
-     {
--        struct ring_buf *ring_buf = reinterpret_cast<struct ring_buf *>(user_data);
-+        ZephyrUartDriver *drv = reinterpret_cast<ZephyrUartDriver *>(user_data);
- 
-         if (!uart_irq_update(dev)) {
++        this->m_rx_paused = false;
+         k_sem_init(&this->m_tx_sem, 0, 1);
+         this->m_tx_pos = 0;
+         this->m_tx_len = 0;
+@@ -71,15 +72,26 @@ namespace Zephyr {
              return;
          }
  
--        if (!uart_irq_rx_ready(dev)) {
--            return;
-+        // RX: drain hardware FIFO into ring buffer
-+        if (uart_irq_rx_ready(dev)) {
-+            U8 c;
-+            // TODO: Get rid of the endless loop (in an IRQ handler!).
-+            while (uart_fifo_read(dev, &c, 1) == 1) {
-+                if (ring_buf_put(&drv->m_ring_buf, &c, 1) != 1) {
-+                    // TODO: Handle properly.
-+                    printk("UART buffer overrun\n");
-+                }
+-        // RX: drain hardware FIFO into ring buffer
++        // RX: drain hardware FIFO into ring buffer, but only while the ring has
++        // room. When it fills, stop reading and disable the RX IRQ so the CDC-ACM
++        // /USB layer back-pressures the host (NAKs the bulk-OUT endpoint) instead
++        // of us dropping bytes. schedIn re-enables RX once it drains the ring.
++        // This is the flow control that bounds a fast host (GDS) to the slow LoRa
++        // egress rate: LoRa slow -> pool full -> ring full -> RX paused -> host
++        // blocks. Without it, a multi-KB host burst overruns the ring and the
++        // dropped bytes corrupt the raw byte-stream passthrough to LoRa.
+         if (uart_irq_rx_ready(dev)) {
+             U8 c;
+-            // TODO: Get rid of the endless loop (in an IRQ handler!).
+-            while (uart_fifo_read(dev, &c, 1) == 1) {
+-                if (ring_buf_put(&drv->m_ring_buf, &c, 1) != 1) {
+-                    // TODO: Handle properly.
+-                    printk("UART buffer overrun\n");
++            while (ring_buf_space_get(&drv->m_ring_buf) > 0) {
++                if (uart_fifo_read(dev, &c, 1) != 1) {
++                    break;  // FIFO drained; nothing more to read right now
+                 }
++                // Space was just confirmed, so this put cannot fail.
++                (void)ring_buf_put(&drv->m_ring_buf, &c, 1);
 +            }
-         }
- 
--        U8 c;
--        // TODO: Get rid of the endless loop (in an IRQ handler!).
--        while (uart_fifo_read(dev, &c, 1) == 1) {
--            if (ring_buf_put(ring_buf, &c, 1) != 1) {
--                // TODO: Handle properly.
--                printk("UART buffer overrun\n");
-+        // TX: push staged bytes into hardware FIFO; signal completion when done
-+        if (uart_irq_tx_ready(dev)) {
-+            U32 remaining = drv->m_tx_len - drv->m_tx_pos;
-+            if (remaining == 0) {
-+                uart_irq_tx_disable(dev);
-+                k_sem_give(&drv->m_tx_sem);
-+            } else {
-+                int sent = uart_fifo_fill(dev, drv->m_tx_buf + drv->m_tx_pos, remaining);
-+                if (sent <= 0) {
-+                    // CDC ACM ring buffer full — disable TX IRQ to prevent a
-+                    // tight ISR loop that would starve the rate-group thread and
-+                    // trigger the watchdog. send_handler's 200 ms timeout fires
-+                    // instead and returns OTHER_ERROR without blocking.
-+                    uart_irq_tx_disable(dev);
-+                    return;
-+                }
-+                drv->m_tx_pos += (U32)sent;
-+                if (drv->m_tx_pos >= drv->m_tx_len) {
-+                    uart_irq_tx_disable(dev);
-+                    k_sem_give(&drv->m_tx_sem);
-+                }
++            if (ring_buf_space_get(&drv->m_ring_buf) == 0) {
++                uart_irq_rx_disable(dev);
++                drv->m_rx_paused = true;
              }
          }
-     }
-@@ -107,8 +136,30 @@ namespace Zephyr {
-             Fw::Buffer &sendBuffer
-         )
-     {
--        for (U32 i = 0; i < sendBuffer.getSize(); i++) {
--            uart_poll_out(this->m_dev, sendBuffer.getData()[i]);
-+        // Send in TX_BUF_SIZE chunks so buffers of any size are handled.
-+        // Each chunk is staged in m_tx_buf and drained by the TX ISR.
-+        // k_sem_take with a 200 ms timeout prevents the indefinite block
-+        // that uart_poll_out() causes when the USB host stops reading.
-+        const U8 *data = sendBuffer.getData();
-+        U32 remaining = sendBuffer.getSize();
-+
-+        while (remaining > 0) {
-+            U32 chunk = (remaining < TX_BUF_SIZE) ? remaining : TX_BUF_SIZE;
-+            memcpy(m_tx_buf, data, chunk);
-+            m_tx_pos = 0;
-+            m_tx_len = chunk;
-+
-+            uart_irq_tx_enable(m_dev);
-+
-+            if (k_sem_take(&m_tx_sem, K_MSEC(200)) != 0) {
-+                uart_irq_tx_disable(m_dev);
-+                m_tx_len = 0;
-+                m_tx_pos = 0;
-+                return Drv::ByteStreamStatus::OTHER_ERROR;
-+            }
-+
-+            data += chunk;
-+            remaining -= chunk;
+ 
+@@ -128,6 +140,16 @@ namespace Zephyr {
+             recv_buffer.setSize(recv_size);
+             recv_out(0, recv_buffer, Drv::ByteStreamStatus::OP_OK);
          }
-         return Drv::ByteStreamStatus::OP_OK;
++
++        // If the RX ISR paused itself for back-pressure (ring was full) and we
++        // have since freed room, resume reading. Note pool exhaustion can leave
++        // the ring full across ticks (allocate_out returns empty -> recv_size 0);
++        // RX simply stays paused until LoRa drains the pool, which is exactly the
++        // back-pressure we want.
++        if (this->m_rx_paused && ring_buf_space_get(&this->m_ring_buf) > 0) {
++            this->m_rx_paused = false;
++            uart_irq_rx_enable(this->m_dev);
++        }
      }
+ 
+     Drv::ByteStreamStatus ZephyrUartDriver ::
 diff --git a/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.hpp b/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.hpp
-index 2edc409..ac7aac0 100644
+index ac7aac0..bb5737b 100644
 --- a/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.hpp
 +++ b/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.hpp
-@@ -76,6 +76,15 @@ namespace Zephyr {
+@@ -14,7 +14,15 @@
+ #include <zephyr/drivers/uart.h>
+ #include <zephyr/sys/ring_buffer.h>
  
+-#define RING_BUF_SIZE 1024
++// The RX ISR drains the UART/USB-CDC FIFO into this ring; schedIn (rateGroup10Hz)
++// empties it into the buffer pool. A fast host burst (e.g. the file-uplink START
++// sequence) can deliver more bytes than one 100 ms tick drains, so the ring must
++// absorb the burst -- on overflow the ISR drops bytes, which silently corrupts
++// the raw byte-stream passthrough to LoRa (every downstream frame then fails the
++// flight-side HMAC auth). The GDS uplinker delivers occasional multi-KB bursts
++// mid-transfer (observed ~5 KB at once) despite the per-chunk cooldown, so the
++// ring must absorb a whole burst; 16384 covers the observed worst case with margin.
++#define RING_BUF_SIZE 16384
+ 
+ namespace Zephyr {
+ 
+@@ -22,7 +30,14 @@ namespace Zephyr {
+     public ZephyrUartDriverComponentBase
+   {
+ 
+-    const FwSizeType SERIAL_BUFFER_SIZE = 64;
++    // Bytes pulled from the RX ring per schedIn tick. On the data path each pull
++    // becomes exactly one LoRa frame, so this also sets the LoRa payload size.
++    // Over-air loss is strongly inter-frame-spacing dependent (bench-measured:
++    // ~1 s gap = 0% loss, ~130 ms = ~16%); at 64 the GRC chopped each cooldown-
++    // paced GDS chunk into ~4 back-to-back LoRa frames at LoRa speed, landing in
++    // the lossy regime. Sizing this to the LoRa max payload (252 - 4 B header =
++    // 248) makes each ~2 s-cooldown-spaced chunk a single, well-spaced frame.
++    const FwSizeType SERIAL_BUFFER_SIZE = 248;
+ 
+     public:
+ 
+@@ -77,6 +92,12 @@ namespace Zephyr {
          U8 m_ring_buf_data[RING_BUF_SIZE];
          struct ring_buf m_ring_buf;
-+
-+        // TX staging: data is copied here, then drained by the TX ISR path.
-+        // Avoids uart_poll_out() which blocks indefinitely when the USB host
-+        // is not reading (e.g. GDS disconnects or OS buffer fills up).
-+        static constexpr U32 TX_BUF_SIZE = 512;
-+        struct k_sem m_tx_sem;
-+        U8  m_tx_buf[TX_BUF_SIZE];
-+        U32 m_tx_pos;
-+        U32 m_tx_len;
-     };
  
- } // end namespace Zephyr
++        // Set by the RX ISR when it disables itself because m_ring_buf is full
++        // (flow-control back-pressure); cleared by schedIn when it re-enables RX
++        // after freeing ring space. volatile: written in ISR, read/written in the
++        // schedIn thread (the RX-IRQ-disabled invariant serializes the handoff).
++        volatile bool m_rx_paused = false;
++
+         // TX staging: data is copied here, then drained by the TX ISR path.
+         // Avoids uart_poll_out() which blocks indefinitely when the USB host
+         // is not reading (e.g. GDS disconnects or OS buffer fills up).

@@ -81,7 +81,7 @@ module ReferenceDeployment {
         phase Fpp.ToCpp.Phases.configComponents """
         memset(&ConfigObjects::ReferenceDeployment_dataBufferManager::bins, 0, sizeof(ConfigObjects::ReferenceDeployment_dataBufferManager::bins));
         ConfigObjects::ReferenceDeployment_dataBufferManager::bins.bins[0].bufferSize = 256;
-        ConfigObjects::ReferenceDeployment_dataBufferManager::bins.bins[0].numBuffers = 8;
+        ConfigObjects::ReferenceDeployment_dataBufferManager::bins.bins[0].numBuffers = 32;
         ReferenceDeployment::dataBufferManager.setup(
             87, // randomly chosen mgr ID
             0,
@@ -103,12 +103,12 @@ module ReferenceDeployment {
     priority 5
 
   # Queue must hold the worst-case in-flight set during an uplink burst: up to
-  # dataBufferManager's pool depth (8) of byteStreamRecv frames, plus the
+  # dataBufferManager's pool depth (32) of byteStreamRecv frames, plus the
   # comStatusIn/comDataReturnIn the bridge generates per frame, plus any
   # concurrent downlink comDataIn traffic. The comStatus flow control bounds
-  # this at the pool depth; 20 leaves comfortable margin above Default (10).
+  # this at the pool depth; 40 leaves comfortable margin above the pool depth.
   instance byteComBridge: Components.ByteComBridge base id 0x10019000 \
-    queue size 20 \
+    queue size 40 \
     stack size Default.STACK_SIZE \
     priority 5
 
