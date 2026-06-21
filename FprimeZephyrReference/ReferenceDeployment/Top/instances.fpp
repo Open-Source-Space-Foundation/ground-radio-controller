@@ -86,7 +86,10 @@ module ReferenceDeployment {
         phase Fpp.ToCpp.Phases.configComponents """
         memset(&ConfigObjects::ReferenceDeployment_dataBufferManager::bins, 0, sizeof(ConfigObjects::ReferenceDeployment_dataBufferManager::bins));
         ConfigObjects::ReferenceDeployment_dataBufferManager::bins.bins[0].bufferSize = 256;
-        ConfigObjects::ReferenceDeployment_dataBufferManager::bins.bins[0].numBuffers = 8;
+        // Pool depth for byteStreamRecv frames on the LoRa uplink path. 8 was a
+        // throughput bottleneck for large files (NoBuffsAvailable stalls); 32
+        // lets enough frames stay in flight while the slow LoRa link drains.
+        ConfigObjects::ReferenceDeployment_dataBufferManager::bins.bins[0].numBuffers = 32;
         ReferenceDeployment::dataBufferManager.setup(
             87, // randomly chosen mgr ID
             0,
