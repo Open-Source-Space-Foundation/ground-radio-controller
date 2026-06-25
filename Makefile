@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 .SHELLFLAGS = -euo pipefail -c
 
-include testconfig
+-include testconfig
 
 BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
 BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
