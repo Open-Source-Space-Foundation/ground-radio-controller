@@ -72,6 +72,12 @@ cargo install probe-rs-tools --locked --version 0.30.0
 version to be 0.30.0 to work around probe-rs
 [#3805](https://github.com/probe-rs/probe-rs/issues/3805).
 
+Pull in submodules:
+
+```
+git submodule update --init --recursive
+```
+
 Set up virtual environment:
 
 ```
@@ -80,6 +86,13 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+Pull in west module (must be done in venv):
+
+```
+west update
+```
+
 
 Set up formatting git hooks:
 
