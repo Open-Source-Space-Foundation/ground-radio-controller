@@ -6,7 +6,6 @@ telemetry packets ReferenceDeploymentPackets {
     ComCcsds.comQueue.comQueueDepth
     ComCcsds.commsBufferManager.HiBuffs
     rateGroup100Hz.RgMaxTime
-    rateGroup10Hz.RgMaxTime
     rateGroup1Hz.RgMaxTime
   }
 
@@ -15,7 +14,6 @@ telemetry packets ReferenceDeploymentPackets {
     ComCcsds.commsBufferManager.NoBuffs
     ComCcsds.commsBufferManager.EmptyBuffs
     rateGroup100Hz.RgCycleSlips
-    rateGroup10Hz.RgCycleSlips
     rateGroup1Hz.RgCycleSlips
   }
 
@@ -32,29 +30,16 @@ telemetry packets ReferenceDeploymentPackets {
     dataBufferManager.HiBuffs
     dataBufferManager.EmptyBuffs
     dataBufferManager.TotalBuffs
-    fileManager.CommandsExecuted
-    fileManager.Errors
-    fileUplink.PacketsReceived
-    fileUplink.FilesReceived
-    fileUplink.Warnings
   }
 
-  packet Sequencer id 5 group 2 {
-    cmdSeq.CS_LoadCommands
-    cmdSeq.CS_CancelCommands
-    cmdSeq.CS_Errors
-    cmdSeq.CS_CommandsExecuted
-    cmdSeq.CS_SequencesCompleted
-  }
-
-  packet UhfRadio id 6 group 2 {
+  packet UhfRadio id 5 group 2 {
     uhf.BytesReceived
     uhf.BytesSent
     uhf.LastRssi
     uhf.LastSnr
   }
 
-  packet Version id 7 group 3 {
+  packet Version id 6 group 3 {
     CdhCore.version.FrameworkVersion
     CdhCore.version.ProjectVersion
     CdhCore.version.LibraryVersion01

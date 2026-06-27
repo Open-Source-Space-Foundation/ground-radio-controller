@@ -19,5 +19,7 @@ if (FPRIME_PLATFORM STREQUAL "Zephyr")
             "${CMAKE_CURRENT_LIST_DIR}/Main.cpp"
         DEPENDS
             ${FPRIME_CURRENT_MODULE}_Top
+        CHOOSES_IMPLEMENTATIONS
+            Os_File_Stub
     )
 endif()

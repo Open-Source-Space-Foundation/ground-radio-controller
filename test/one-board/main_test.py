@@ -2,48 +2,6 @@
 These tests require that one board be connected to the PC.
 """
 
-from pathlib import Path
-import subprocess
-
-import pytest
-
-
-ROOT = Path(__file__).resolve().parents[2]
-DICTIONARY = (
-    ROOT
-    / "build-artifacts"
-    / "zephyr"
-    / "fprime-zephyr-deployment"
-    / "dict"
-    / "ReferenceDeploymentTopologyDictionary.json"
-)
-SEQUENCE_SOURCE = ROOT / "test" / "assets" / "cs_noop.seq"
-
-
-@pytest.fixture(scope="module")
-def compiled_sequence_bin(tmp_path_factory):
-    output_dir = tmp_path_factory.mktemp("seq")
-    output_bin = output_dir / "cs_noop.bin"
-
-    if not DICTIONARY.exists():
-        pytest.fail(f"Missing dictionary for sequence compilation: {DICTIONARY}")
-
-    result = subprocess.run(
-        [
-            "fprime-seqgen",
-            "--dictionary",
-            str(DICTIONARY),
-            str(SEQUENCE_SOURCE),
-            str(output_bin),
-        ],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        pytest.fail(f"fprime-seqgen failed:\n{result.stderr}")
-
-    return output_bin
-
 
 def test_send_noop(fprime_test_api):
     fprime_test_api.send_and_assert_command("CdhCore.cmdDisp.CMD_NO_OP", timeout=2)
@@ -76,16 +34,3 @@ def test_large_data_port_write_fills_bridge_buffer(fprime_test_api, data_port_on
     assert fprime_test_api.await_event(
         "ReferenceDeployment.byteComBridge.ByteStreamBufferFull", timeout=2
     )
-
-
-def test_command_seq_run(fprime_test_api, compiled_sequence_bin):
-    remote_path = "/cs_noop.bin"
-
-    fprime_test_api.uplink_file_and_await_completion(
-        str(compiled_sequence_bin), remote_path, timeout=5
-    )
-
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.cmdSeq.CS_RUN", [remote_path, "BLOCK"], timeout=5
-    )
-    fprime_test_api.assert_event("CdhCore.cmdDisp.NoOpReceived", timeout=2)

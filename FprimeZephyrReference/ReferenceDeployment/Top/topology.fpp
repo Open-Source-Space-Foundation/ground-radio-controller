@@ -6,7 +6,6 @@ module ReferenceDeployment {
 
   enum Ports_RateGroups {
     rateGroup100Hz
-    rateGroup10Hz
     rateGroup1Hz
   }
 
@@ -23,11 +22,7 @@ module ReferenceDeployment {
   # ----------------------------------------------------------------------
     instance chronoTime
     instance rateGroup100Hz
-    instance rateGroup10Hz
     instance rateGroup1Hz
-    instance fileManager
-    instance fileUplink
-    instance cmdSeq
     instance rateGroupDriver
     instance timer
     instance controlUartDriver
@@ -67,10 +62,6 @@ module ReferenceDeployment {
       # Router to Command Dispatcher
       ComCcsds.fprimeRouter.commandOut -> CdhCore.cmdDisp.seqCmdBuff
       CdhCore.cmdDisp.seqCmdStatus -> ComCcsds.fprimeRouter.cmdResponseIn
-
-      # Router <-> FileUplink
-      ComCcsds.fprimeRouter.fileOut -> fileUplink.bufferSendIn
-      fileUplink.bufferSendOut -> ComCcsds.fprimeRouter.fileBufferReturnIn
 
     }
 
@@ -117,10 +108,6 @@ module ReferenceDeployment {
       rateGroup100Hz.RateGroupMemberOut[0] -> controlUartDriver.schedIn
       rateGroup100Hz.RateGroupMemberOut[1] -> dataUartDriver.schedIn
 
-      # High rate (10Hz) rate group
-      rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
-      rateGroup10Hz.RateGroupMemberOut[0] -> fileManager.schedIn
-
       # Slow rate (1Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1Hz] -> rateGroup1Hz.CycleIn
       rateGroup1Hz.RateGroupMemberOut[0] -> ComCcsds.comQueue.run
@@ -129,12 +116,6 @@ module ReferenceDeployment {
       rateGroup1Hz.RateGroupMemberOut[3] -> CdhCore.tlmSend.Run
       rateGroup1Hz.RateGroupMemberOut[4] -> ComCcsds.aggregator.timeout
       rateGroup1Hz.RateGroupMemberOut[5] -> CdhCore.cmdDisp.run
-      rateGroup1Hz.RateGroupMemberOut[6] -> cmdSeq.schedIn
-    }
-
-    connections CmdSeq {
-      cmdSeq.comCmdOut -> CdhCore.cmdDisp.seqCmdBuff[1]
-      CdhCore.cmdDisp.seqCmdStatus[1] -> cmdSeq.cmdResponseIn
     }
 
     connections ReferenceDeployment {

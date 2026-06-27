@@ -9,8 +9,6 @@
 // Subtopology PingEntries includes
 #include "Svc/Subtopologies/CdhCore/PingEntries.hpp"
 #include "Svc/Subtopologies/ComCcsds/PingEntries.hpp"
-#include "Svc/Subtopologies/DataProducts/PingEntries.hpp"
-#include "Svc/Subtopologies/FileHandling/PingEntries.hpp"
 
 // SubtopologyTopologyDefs includes
 #include "Svc/Subtopologies/CdhCore/SubtopologyTopologyDefs.hpp"
@@ -47,22 +45,10 @@ namespace PingEntries {
 namespace ReferenceDeployment_rateGroup100Hz {
 enum { WARN = 3, FATAL = 5 };
 }
-namespace ReferenceDeployment_rateGroup10Hz {
-enum { WARN = 3, FATAL = 5 };
-}
 namespace ReferenceDeployment_rateGroup1Hz {
 enum { WARN = 3, FATAL = 5 };
 }
 namespace ReferenceDeployment_prmDb {
-enum { WARN = 3, FATAL = 5 };
-}
-namespace ReferenceDeployment_fileManager {
-enum { WARN = 3, FATAL = 5 };
-}
-namespace ReferenceDeployment_fileUplink {
-enum { WARN = 3, FATAL = 5 };
-}
-namespace ReferenceDeployment_cmdSeq {
 enum { WARN = 3, FATAL = 5 };
 }
 }  // namespace PingEntries

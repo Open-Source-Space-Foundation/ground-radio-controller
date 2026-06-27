@@ -50,21 +50,20 @@ gds: check-no-gds
 menuconfig:
 	fprime-util build --target menuconfig
 
-ONE_BOARD_TEST_TARGETS := bft1 bft1-main bft1-fs test1 test1-main test1-fs
+ONE_BOARD_TEST_TARGETS := bft1 bft1-main test1 test1-main
 TWO_BOARD_TEST_TARGETS := bft2 bft2-main bft2-long test2 test2-main test2-long
-BFT_TARGETS := bft1 bft1-main bft1-fs bft2 bft2-main bft2-long
-TEST_TARGETS := test1 test1-main test1-fs test2 test2-main test2-long
+BFT_TARGETS := bft1 bft1-main bft2 bft2-main bft2-long
+TEST_TARGETS := test1 test1-main test2 test2-main test2-long
 
 $(ONE_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_ONE_BOARD_CFG_ARGS)
 $(TWO_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_TWO_BOARD_CFG_ARGS)
 bft1 test1: PYTEST_TESTS := test/one-board
 bft1-main test1-main: PYTEST_TESTS := test/one-board/main_test.py
-bft1-fs test1-fs: PYTEST_TESTS := test/one-board/fs_test.py
 bft2 test2: PYTEST_TESTS := test/two-board/
 bft2-main test2-main: PYTEST_TESTS := test/two-board/main_test.py
 bft2-long test2-long: PYTEST_TESTS := test/two-board/long_test.py
 
-bft1 bft1-main bft1-fs: check-no-gds flash1
+bft1 bft1-main: check-no-gds flash1
 bft2 bft2-main bft2-long: check-no-gds flash2
 
 $(BFT_TARGETS):
