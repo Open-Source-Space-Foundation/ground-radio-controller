@@ -1,6 +1,9 @@
 SHELL := /bin/bash
 .SHELLFLAGS = -euo pipefail -c
 
+# Parallelize 2-board flash
+MAKEFLAGS := --jobs=2
+
 -include testconfig
 
 BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
