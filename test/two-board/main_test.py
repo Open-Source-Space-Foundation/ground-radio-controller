@@ -1,5 +1,7 @@
 """These tests require two flashed boards connected to the PC."""
 
+import pytest
+
 from fprime_gds.common.communication.ccsds.space_data_link import (
     SpaceDataLinkFramerDeframer,
 )
@@ -59,6 +61,39 @@ def test_link_recovers_after_frame_buffer_exhaustion(
     data_port_one.write(max_size_packet)
 
     assert data_port_two.read(len(max_size_packet)) == max_size_packet
+
+
+# Known FrameAccumulator bug: when a detected frame hits NoBufferAvailable while
+# the accumulation ring is not full, F Prime leaves that frame at the head of the
+# ring. Later input can deliver the stale frame instead of the newly sent frame,
+# causing data lag and repeated NoBufferAvailable warnings.
+@pytest.mark.xfail(reason="Known FrameAccumulator stale-frame bug", strict=True)
+def test_known_bug_link_lags_after_frame_buffer_exhaustion(
+    fprime_test_api, data_port_one, data_port_two
+):
+    payload_size = 50 - TC_FRAME_OVERHEAD_SIZE
+    initial_packets = [
+        _tc_frame(f"initial-{i}".encode().ljust(payload_size, b"x")) for i in range(2)
+    ]
+    recovery_packets = [
+        _tc_frame(f"recovery-{i}".encode().ljust(payload_size, b"x")) for i in range(10)
+    ]
+
+    data_port_one.write(b"".join(initial_packets))
+
+    assert fprime_test_api.await_event(
+        "ReferenceDeployment.dataFrameAccumulator.NoBufferAvailable", timeout=2
+    )
+    fprime_test_api.clear_histories()
+
+    data_port_two.read(len(initial_packets[0]))
+
+    # Verify packets can come through after GRC has time to return the buffer
+    for packet in recovery_packets:
+        data_port_one.write(packet)
+        assert data_port_two.read(len(packet)) == packet
+
+    _assert_no_warnings(fprime_test_api)
 
 
 def test_link_drops_unframed_bytes(fprime_test_api, data_port_one, data_port_two):
