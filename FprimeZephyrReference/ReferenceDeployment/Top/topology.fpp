@@ -28,9 +28,13 @@ module ReferenceDeployment {
     instance controlUartDriver
     instance dataUartDriver
     instance dataBufferManager
+    instance dataFrameBufferManager
     instance uhf
     instance prmDb
-    instance byteComBridge
+    instance dataComStub
+    instance dataFrameAccumulator
+    instance uplinkPassThrough
+    instance uplinkComQueue
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
@@ -83,19 +87,28 @@ module ReferenceDeployment {
       # dataUartDriver connections
       dataUartDriver.allocate                -> dataBufferManager.bufferGetCallee
       dataUartDriver.deallocate              -> dataBufferManager.bufferSendIn
-      dataUartDriver.$recv                   -> byteComBridge.byteStreamRecv
-      dataUartDriver.ready                   -> byteComBridge.byteStreamReady
-      byteComBridge.byteStreamSend          -> dataUartDriver.$send
-      byteComBridge.byteStreamRecvReturnOut -> dataUartDriver.recvReturnIn
+      dataUartDriver.$recv                   -> dataComStub.drvReceiveIn
+      dataUartDriver.ready                   -> dataComStub.drvConnected
+      dataComStub.drvReceiveReturnOut        -> dataUartDriver.recvReturnIn
+
+      # UART byte stream -> complete CCSDS TC frames
+      dataComStub.dataOut                    -> dataFrameAccumulator.dataIn
+      dataFrameAccumulator.dataReturnOut     -> dataComStub.dataReturnIn
+      dataFrameAccumulator.bufferAllocate    -> dataFrameBufferManager.bufferGetCallee
+      dataFrameAccumulator.bufferDeallocate  -> dataFrameBufferManager.bufferSendIn
+
+      # Complete TC frames -> queued LoRa uplink
+      dataFrameAccumulator.dataOut           -> uplinkPassThrough.dataIn
+      uplinkPassThrough.allPacketsOut        -> uplinkComQueue.bufferQueueIn[0]
+      uplinkComQueue.bufferReturnOut[0]      -> uplinkPassThrough.allPacketsReturnIn
+      uplinkPassThrough.dataReturnOut        -> dataFrameAccumulator.dataReturnIn
 
       # UHF connections
       uhf.allocate                   -> dataBufferManager.bufferGetCallee
       uhf.deallocate                 -> dataBufferManager.bufferSendIn
-      uhf.dataOut                    -> byteComBridge.comDataIn
-      uhf.comStatusOut               -> byteComBridge.comStatusIn
-      uhf.dataReturnOut              -> byteComBridge.comDataReturnIn
-      byteComBridge.comDataOut       -> uhf.dataIn
-      byteComBridge.comDataReturnOut -> uhf.dataReturnIn
+      uplinkComQueue.dataOut         -> uhf.dataIn
+      uhf.dataReturnOut              -> uplinkComQueue.dataReturnIn
+      uhf.comStatusOut               -> uplinkComQueue.comStatusIn
 
     }
 
@@ -116,6 +129,7 @@ module ReferenceDeployment {
       rateGroup1Hz.RateGroupMemberOut[3] -> CdhCore.tlmSend.Run
       rateGroup1Hz.RateGroupMemberOut[4] -> ComCcsds.aggregator.timeout
       rateGroup1Hz.RateGroupMemberOut[5] -> CdhCore.cmdDisp.run
+      rateGroup1Hz.RateGroupMemberOut[6] -> uplinkComQueue.run
     }
 
     connections ReferenceDeployment {

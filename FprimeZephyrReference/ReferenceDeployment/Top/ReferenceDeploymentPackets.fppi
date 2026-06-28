@@ -4,6 +4,7 @@ telemetry packets ReferenceDeploymentPackets {
     CdhCore.cmdDisp.CommandsDispatched
     CdhCore.cmdDisp.CommandsDropped
     ComCcsds.comQueue.comQueueDepth
+    uplinkComQueue.comQueueDepth
     ComCcsds.commsBufferManager.HiBuffs
     rateGroup100Hz.RgMaxTime
     rateGroup1Hz.RgMaxTime
@@ -22,6 +23,7 @@ telemetry packets ReferenceDeploymentPackets {
     ComCcsds.commsBufferManager.TotalBuffs
     ComCcsds.commsBufferManager.CurrBuffs
     ComCcsds.comQueue.buffQueueDepth
+    uplinkComQueue.buffQueueDepth
   }
 
   packet Other id 4 group 2 {
@@ -30,6 +32,11 @@ telemetry packets ReferenceDeploymentPackets {
     dataBufferManager.HiBuffs
     dataBufferManager.EmptyBuffs
     dataBufferManager.TotalBuffs
+    dataFrameBufferManager.NoBuffs
+    dataFrameBufferManager.CurrBuffs
+    dataFrameBufferManager.HiBuffs
+    dataFrameBufferManager.EmptyBuffs
+    dataFrameBufferManager.TotalBuffs
   }
 
   packet UhfRadio id 5 group 2 {

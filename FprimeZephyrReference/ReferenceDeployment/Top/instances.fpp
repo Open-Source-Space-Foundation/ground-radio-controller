@@ -36,6 +36,35 @@ module ReferenceDeployment {
     stack size Default.STACK_SIZE \
     priority 4
 
+  instance uplinkComQueue: Svc.ComQueue base id 0x10004000 \
+    queue size Default.QUEUE_SIZE \
+    stack size Default.STACK_SIZE \
+    priority 5 \
+    {
+        phase Fpp.ToCpp.Phases.configObjects """
+        Svc::ComQueue::QueueConfigurationTable configurationTable;
+        Fw::MallocAllocator mallocatorInstance;
+        """
+
+        phase Fpp.ToCpp.Phases.configComponents """
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[0].depth = 1;
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[0].priority = 0;
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[1].depth = 1;
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[1].priority = 1;
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[2].depth = 2;
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[2].priority = 2;
+        ReferenceDeployment::uplinkComQueue.configure(
+            ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable,
+            0,
+            ConfigObjects::ReferenceDeployment_uplinkComQueue::mallocatorInstance
+        );
+        """
+
+        phase Fpp.ToCpp.Phases.tearDownComponents """
+        ReferenceDeployment::uplinkComQueue.cleanup();
+        """
+    }
+
 
   # ----------------------------------------------------------------------
   # Queued component instances
@@ -80,6 +109,30 @@ module ReferenceDeployment {
         """
     }
 
+  instance dataFrameBufferManager: Svc.BufferManager base id 0x10016500 \
+    {
+        phase Fpp.ToCpp.Phases.configObjects """
+        Svc::BufferManager::BufferBins bins;
+        Fw::MallocAllocator mallocatorInstance;
+        """
+
+        phase Fpp.ToCpp.Phases.configComponents """
+        memset(&ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins, 0, sizeof(ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins));
+        ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].bufferSize = 256;
+        ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].numBuffers = 1;
+        ReferenceDeployment::dataFrameBufferManager.setup(
+            88, // randomly chosen mgr ID
+            0,
+            ConfigObjects::ReferenceDeployment_dataFrameBufferManager::mallocatorInstance,
+            ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins
+        );
+        """
+
+        phase Fpp.ToCpp.Phases.tearDownComponents """
+        ReferenceDeployment::dataFrameBufferManager.cleanup();
+        """
+    }
+
   instance uhf: Zephyr.LoRa base id 0x10017000
 
   instance prmDb: Svc.PrmDb base id 0x10018000 \
@@ -87,9 +140,29 @@ module ReferenceDeployment {
     stack size Default.STACK_SIZE \
     priority 5
 
-  instance byteComBridge: Components.ByteComBridge base id 0x10019000 \
-    queue size Default.QUEUE_SIZE \
-    stack size Default.STACK_SIZE \
-    priority 5
+  instance dataComStub: Svc.ComStub base id 0x10019000
+
+  instance dataFrameAccumulator: Svc.FrameAccumulator base id 0x1001A000 \
+    {
+        phase Fpp.ToCpp.Phases.configObjects """
+        Svc::FrameDetectors::CcsdsTcFrameDetector frameDetector;
+        Fw::MallocAllocator mallocatorInstance;
+        """
+
+        phase Fpp.ToCpp.Phases.configComponents """
+        ReferenceDeployment::dataFrameAccumulator.configure(
+            ConfigObjects::ReferenceDeployment_dataFrameAccumulator::frameDetector,
+            2,
+            ConfigObjects::ReferenceDeployment_dataFrameAccumulator::mallocatorInstance,
+            256
+        );
+        """
+
+        phase Fpp.ToCpp.Phases.tearDownComponents """
+        ReferenceDeployment::dataFrameAccumulator.cleanup();
+        """
+    }
+
+  instance uplinkPassThrough: Svc.PassThroughRouter base id 0x1001B000
 
 }
