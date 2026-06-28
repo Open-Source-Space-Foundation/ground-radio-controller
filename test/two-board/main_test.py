@@ -38,6 +38,26 @@ def test_link_one_to_two_one_packet(fprime_test_api, data_port_one, data_port_tw
         _assert_no_warnings(fprime_test_api)
 
 
+def test_link_drops_unframed_bytes(fprime_test_api, data_port_one, data_port_two):
+    try:
+        packets = [_tc_frame(b"first"), _tc_frame(b"second")]
+        received_packets = []
+
+        sent = b"junk-before" + packets[0] + b"junk-between"
+        assert data_port_one.write(sent) == len(sent)
+        received_packets.append(data_port_two.read(len(packets[0])))
+
+        assert data_port_one.write(packets[1]) == len(packets[1])
+        received_packets.append(data_port_two.read(len(packets[1])))
+
+        assert received_packets == packets, (
+            f"Expected {len(packets)} framed packets from board two, "
+            f"received {sum(received == expected for received, expected in zip(received_packets, packets))}"
+        )
+    finally:
+        _assert_no_warnings(fprime_test_api)
+
+
 def test_link_survives_valid_freq_change(fprime_test_api, data_port_one, data_port_two):
     sent = _tc_frame(b"freq-ok")
 
