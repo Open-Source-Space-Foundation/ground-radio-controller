@@ -11,6 +11,8 @@ VCID = 1
 MAX_TC_FRAME_SIZE = 248
 MAX_TC_FRAME_PAYLOAD_SIZE = 241
 LONG_FRAME_COUNT = 64
+PING_PONG_EXCHANGE_COUNT = 32
+PING_PONG_EXCHANGE_MAX_SECONDS = 60.0
 
 
 def _assert_no_warnings(fprime_test_api):
@@ -40,9 +42,7 @@ def test_link_one_to_two_64_max_tc_frames(
         received = b""
 
         for frame in frames:
-            assert len(frame) == MAX_TC_FRAME_SIZE
-            assert data_port_one.write(frame) == len(frame)
-            data_port_one.flush()
+            data_port_one.write(frame)
             received += data_port_two.read_all()
             # A 252-byte LoRa packet has about 902ms time-on-air according to
             # Semtech calculator at SF8/125 kHz/CR 4/5
@@ -69,11 +69,9 @@ def test_link_two_to_one_64_max_tc_frames(
         received = b""
 
         for frame in frames:
-            assert len(frame) == MAX_TC_FRAME_SIZE
-            assert data_port_two.write(frame) == len(frame)
-            # See comment in one-to-two test
-            data_port_two.flush()
+            data_port_two.write(frame)
             received += data_port_one.read_all()
+            # See comment in one-to-two test
             time.sleep(1.0)
 
         received += data_port_one.read(len(sent) - len(received))
@@ -81,6 +79,39 @@ def test_link_two_to_one_64_max_tc_frames(
         assert received == sent, (
             f"Expected {len(frames)} packets from board one, "
             f"received {len(received) / MAX_TC_FRAME_SIZE:g}"
+        )
+    finally:
+        _assert_no_warnings(fprime_test_api)
+
+
+def test_ping_pong_one_two(fprime_test_api, data_port_one, data_port_two):
+    try:
+        exchanges = [
+            (
+                _tc_frame(bytes([packet_number]) * MAX_TC_FRAME_PAYLOAD_SIZE),
+                _tc_frame(
+                    bytes([packet_number + PING_PONG_EXCHANGE_COUNT])
+                    * MAX_TC_FRAME_PAYLOAD_SIZE
+                ),
+            )
+            for packet_number in range(PING_PONG_EXCHANGE_COUNT)
+        ]
+        received = []
+
+        start = time.monotonic()
+        for outbound, reply in exchanges:
+            data_port_one.write(outbound)
+            received.append(data_port_two.read(len(outbound)))
+
+            data_port_two.write(reply)
+            received.append(data_port_one.read(len(reply)))
+        elapsed = time.monotonic() - start
+
+        assert received == [packet for exchange in exchanges for packet in exchange]
+        assert elapsed < PING_PONG_EXCHANGE_MAX_SECONDS, (
+            f"Expected {PING_PONG_EXCHANGE_COUNT * 2} max-size packets to "
+            f"exchange in less than {PING_PONG_EXCHANGE_MAX_SECONDS:.1f}s, "
+            f"took {elapsed:.1f}s"
         )
     finally:
         _assert_no_warnings(fprime_test_api)

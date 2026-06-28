@@ -34,7 +34,6 @@ def test_link_one_to_two_one_packet(fprime_test_api, data_port_one, data_port_tw
     try:
         sent = _tc_frame(b"one-packet")
         data_port_one.write(sent)
-        data_port_one.flush()
 
         received = data_port_two.read(len(sent))
         assert received == sent, "Timed out waiting for data from board two"
@@ -131,7 +130,6 @@ def test_link_survives_valid_freq_change(fprime_test_api, data_port_one, data_po
             timeout=2,
         )
         data_port_one.write(sent)
-        data_port_one.flush()
 
         received = data_port_two.read(len(sent))
         assert received == sent, (
@@ -163,7 +161,6 @@ def test_link_breaks_after_mismatched_freq(
             timeout=2,
         )
         data_port_one.write(sent)
-        data_port_one.flush()
 
         received = data_port_two.read(len(sent))
         assert received != sent, (
