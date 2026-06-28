@@ -8,6 +8,9 @@ from fprime_gds.common.communication.ccsds.space_data_link import (
     SpaceDataLinkFramerDeframer,
 )
 
+MAX_LORA_DATA_FRAME_SIZE = 248
+TC_FRAME_OVERHEAD_SIZE = 7
+
 
 def _tc_frame(scid: int, vcid: int, payload: bytes = b"x") -> bytes:
     return SpaceDataLinkFramerDeframer(scid=scid, vcid=vcid, frame_size=1024).frame(
@@ -27,7 +30,10 @@ def _assert_no_warnings(fprime_test_api):
 def test_rejects_oversized_tc_frame(fprime_test_api, data_port_one):
     scid = 0x44
     vcid = 1
-    oversized_frame = _tc_frame(scid, vcid, b"x" * 250)
+    oversized_frame = _tc_frame(
+        scid, vcid, b"x" * (MAX_LORA_DATA_FRAME_SIZE - TC_FRAME_OVERHEAD_SIZE + 1)
+    )
+    assert len(oversized_frame) == MAX_LORA_DATA_FRAME_SIZE + 1
 
     data_port_one.write(oversized_frame)
 

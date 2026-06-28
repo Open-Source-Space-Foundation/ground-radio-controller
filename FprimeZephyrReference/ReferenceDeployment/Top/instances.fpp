@@ -20,6 +20,7 @@ module ReferenceDeployment {
   module Default {
     constant QUEUE_SIZE = 10
     constant STACK_SIZE = 8 * 1024 # Must match prj.conf thread stack size
+    constant MAX_LORA_DATA_FRAME_SIZE = 248
   }
 
   # ----------------------------------------------------------------------
@@ -147,7 +148,7 @@ module ReferenceDeployment {
 
         phase Fpp.ToCpp.Phases.configComponents """
         memset(&ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins, 0, sizeof(ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins));
-        ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].bufferSize = 256;
+        ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].bufferSize = ReferenceDeployment::Default::MAX_LORA_DATA_FRAME_SIZE;
         ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].numBuffers = 1;
         ReferenceDeployment::dataFrameBufferManager.setup(
             88, // randomly chosen mgr ID
@@ -183,7 +184,7 @@ module ReferenceDeployment {
             ConfigObjects::ReferenceDeployment_dataFrameAccumulator::frameDetector,
             2,
             ConfigObjects::ReferenceDeployment_dataFrameAccumulator::mallocatorInstance,
-            256
+            ReferenceDeployment::Default::MAX_LORA_DATA_FRAME_SIZE
         );
         """
 
