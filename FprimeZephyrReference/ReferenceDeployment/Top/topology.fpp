@@ -35,6 +35,8 @@ module ReferenceDeployment {
     instance dataFrameAccumulator
     instance uplinkPassThrough
     instance uplinkComQueue
+    instance downlinkPassThrough
+    instance downlinkComQueue
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
@@ -110,6 +112,17 @@ module ReferenceDeployment {
       uhf.dataReturnOut              -> uplinkComQueue.dataReturnIn
       uhf.comStatusOut               -> uplinkComQueue.comStatusIn
 
+      # LoRa downlink -> queued UART byte stream
+      uhf.dataOut                              -> downlinkPassThrough.dataIn
+      downlinkPassThrough.allPacketsOut       -> downlinkComQueue.bufferQueueIn[0]
+      downlinkComQueue.bufferReturnOut[0]     -> downlinkPassThrough.allPacketsReturnIn
+      downlinkPassThrough.dataReturnOut       -> uhf.dataReturnIn
+
+      downlinkComQueue.dataOut                -> dataComStub.dataIn
+      dataComStub.dataReturnOut               -> downlinkComQueue.dataReturnIn
+      dataComStub.comStatusOut                -> downlinkComQueue.comStatusIn
+      dataComStub.drvSendOut                  -> dataUartDriver.$send
+
     }
 
     connections RateGroups {
@@ -130,6 +143,7 @@ module ReferenceDeployment {
       rateGroup1Hz.RateGroupMemberOut[4] -> ComCcsds.aggregator.timeout
       rateGroup1Hz.RateGroupMemberOut[5] -> CdhCore.cmdDisp.run
       rateGroup1Hz.RateGroupMemberOut[6] -> uplinkComQueue.run
+      rateGroup1Hz.RateGroupMemberOut[7] -> downlinkComQueue.run
     }
 
     connections ReferenceDeployment {

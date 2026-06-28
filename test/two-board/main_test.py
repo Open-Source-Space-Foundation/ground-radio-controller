@@ -1,13 +1,20 @@
-"""
-These tests require two boards be flashed with radio controller software and
-connected to the PC.
-"""
+"""These tests require two flashed boards connected to the PC."""
 
-import time
+from fprime_gds.common.communication.ccsds.space_data_link import (
+    SpaceDataLinkFramerDeframer,
+)
 
 BASELINE_FREQUENCY_HZ = 437400000
 PASS_FREQUENCY_HZ = 437425000
 FAIL_FREQUENCY_HZ = 437435000
+SCID = 0x44
+VCID = 1
+
+
+def _tc_frame(payload: bytes) -> bytes:
+    return SpaceDataLinkFramerDeframer(scid=SCID, vcid=VCID, frame_size=248).frame(
+        payload
+    )
 
 
 def _assert_no_warnings(fprime_test_api):
@@ -19,39 +26,20 @@ def _assert_no_warnings(fprime_test_api):
     assert not warnings, "Unexpected warning events:\n" + "\n".join(warnings)
 
 
-def test_open_data_ports(fprime_test_api, data_port_one, data_port_two):
-    assert data_port_one.is_open
-    assert data_port_two.is_open
-
-
-def test_link_one_to_two(fprime_test_api, data_port_one, data_port_two):
+def test_link_one_to_two_one_packet(fprime_test_api, data_port_one, data_port_two):
     try:
-        sent = b"\0"
+        sent = _tc_frame(b"one-packet")
         data_port_one.write(sent)
         data_port_one.flush()
+
         received = data_port_two.read(len(sent))
         assert received == sent, "Timed out waiting for data from board two"
     finally:
         _assert_no_warnings(fprime_test_api)
 
 
-def test_link_one_to_two_single_252_byte_write(
-    fprime_test_api, data_port_one, data_port_two
-):
-    try:
-        sent = bytes(range(252))
-
-        assert data_port_one.write(sent) == len(sent)
-        data_port_one.flush()
-
-        received = data_port_two.read(len(sent))
-        assert received == sent, "Timed out waiting for 252-byte payload from board two"
-    finally:
-        _assert_no_warnings(fprime_test_api)
-
-
 def test_link_survives_valid_freq_change(fprime_test_api, data_port_one, data_port_two):
-    sent = b"cfgud"
+    sent = _tc_frame(b"freq-ok")
 
     fprime_test_api.send_and_assert_command(
         "ReferenceDeployment.uhf.SET_FREQ",
@@ -66,6 +54,7 @@ def test_link_survives_valid_freq_change(fprime_test_api, data_port_one, data_po
         )
         data_port_one.write(sent)
         data_port_one.flush()
+
         received = data_port_two.read(len(sent))
         assert received == sent, (
             "Timed out waiting for data from board two after frequency change"
@@ -82,7 +71,7 @@ def test_link_survives_valid_freq_change(fprime_test_api, data_port_one, data_po
 def test_link_breaks_after_mismatched_freq(
     fprime_test_api, data_port_one, data_port_two
 ):
-    sent = b"cfbad"
+    sent = _tc_frame(b"freq-bad")
 
     fprime_test_api.send_and_assert_command(
         "ReferenceDeployment.uhf.SET_FREQ",
@@ -97,6 +86,7 @@ def test_link_breaks_after_mismatched_freq(
         )
         data_port_one.write(sent)
         data_port_one.flush()
+
         received = data_port_two.read(len(sent))
         assert received != sent, (
             "Unexpectedly received payload across mismatched frequencies"

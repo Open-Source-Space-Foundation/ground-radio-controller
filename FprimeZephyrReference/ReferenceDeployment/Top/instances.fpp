@@ -65,6 +65,35 @@ module ReferenceDeployment {
         """
     }
 
+  instance downlinkComQueue: Svc.ComQueue base id 0x10005000 \
+    queue size Default.QUEUE_SIZE \
+    stack size Default.STACK_SIZE \
+    priority 5 \
+    {
+        phase Fpp.ToCpp.Phases.configObjects """
+        Svc::ComQueue::QueueConfigurationTable configurationTable;
+        Fw::MallocAllocator mallocatorInstance;
+        """
+
+        phase Fpp.ToCpp.Phases.configComponents """
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[0].depth = 1;
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[0].priority = 0;
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[1].depth = 1;
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[1].priority = 1;
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[2].depth = 2;
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[2].priority = 2;
+        ReferenceDeployment::downlinkComQueue.configure(
+            ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable,
+            1,
+            ConfigObjects::ReferenceDeployment_downlinkComQueue::mallocatorInstance
+        );
+        """
+
+        phase Fpp.ToCpp.Phases.tearDownComponents """
+        ReferenceDeployment::downlinkComQueue.cleanup();
+        """
+    }
+
 
   # ----------------------------------------------------------------------
   # Queued component instances
@@ -164,5 +193,7 @@ module ReferenceDeployment {
     }
 
   instance uplinkPassThrough: Svc.PassThroughRouter base id 0x1001B000
+
+  instance downlinkPassThrough: Svc.PassThroughRouter base id 0x1001C000
 
 }

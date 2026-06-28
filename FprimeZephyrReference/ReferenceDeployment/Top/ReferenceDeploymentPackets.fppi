@@ -5,6 +5,7 @@ telemetry packets ReferenceDeploymentPackets {
     CdhCore.cmdDisp.CommandsDropped
     ComCcsds.comQueue.comQueueDepth
     uplinkComQueue.comQueueDepth
+    downlinkComQueue.comQueueDepth
     ComCcsds.commsBufferManager.HiBuffs
     rateGroup100Hz.RgMaxTime
     rateGroup1Hz.RgMaxTime
@@ -24,6 +25,7 @@ telemetry packets ReferenceDeploymentPackets {
     ComCcsds.commsBufferManager.CurrBuffs
     ComCcsds.comQueue.buffQueueDepth
     uplinkComQueue.buffQueueDepth
+    downlinkComQueue.buffQueueDepth
   }
 
   packet Other id 4 group 2 {
