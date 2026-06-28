@@ -7,6 +7,8 @@ from fprime_gds.common.communication.ccsds.space_data_link import (
 BASELINE_FREQUENCY_HZ = 437400000
 PASS_FREQUENCY_HZ = 437425000
 FAIL_FREQUENCY_HZ = 437435000
+MAX_LORA_DATA_FRAME_SIZE = 248
+TC_FRAME_OVERHEAD_SIZE = 7
 SCID = 0x44
 VCID = 1
 
@@ -36,6 +38,27 @@ def test_link_one_to_two_one_packet(fprime_test_api, data_port_one, data_port_tw
         assert received == sent, "Timed out waiting for data from board two"
     finally:
         _assert_no_warnings(fprime_test_api)
+
+
+def test_link_recovers_after_frame_buffer_exhaustion(
+    fprime_test_api, data_port_one, data_port_two
+):
+    max_size_packet = _tc_frame(
+        b"x" * (MAX_LORA_DATA_FRAME_SIZE - TC_FRAME_OVERHEAD_SIZE)
+    )
+
+    data_port_one.write(max_size_packet + max_size_packet)
+
+    assert fprime_test_api.await_event(
+        "ReferenceDeployment.dataFrameAccumulator.NoBufferAvailable", timeout=2
+    )
+
+    data_port_two.read(len(max_size_packet))
+
+    # Verify packet can come through after GRC has time to return the buffer
+    data_port_one.write(max_size_packet)
+
+    assert data_port_two.read(len(max_size_packet)) == max_size_packet
 
 
 def test_link_drops_unframed_bytes(fprime_test_api, data_port_one, data_port_two):
