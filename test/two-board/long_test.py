@@ -23,7 +23,7 @@ def _assert_no_warnings(fprime_test_api):
 
 
 def _tc_frame(payload: bytes) -> bytes:
-    return SpaceDataLinkFramerDeframer(scid=SCID, vcid=VCID, frame_size=248).frame(
+    return SpaceDataLinkFramerDeframer(scid=SCID, vcid=VCID, frame_size=None).frame(
         payload
     )
 
