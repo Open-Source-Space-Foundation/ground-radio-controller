@@ -56,27 +56,14 @@ frequency of the broadcast.
 
 Install [Zephyr dependencies:](https://docs.zephyrproject.org/latest/develop/getting_started/index.html#install-dependencies)
 
+#### Linux
 ```
 sudo apt install --no-install-recommends git cmake ninja-build gperf \
   ccache dfu-util device-tree-compiler wget python3-dev python3-venv python3-tk \
   xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
 ```
 
-Install probe-rs:
-
-```
-cargo install probe-rs-tools --locked --version 0.30.0
-```
-
-`~/.cargo/bin/` should be in your path so that `probe-rs` can be found. We fix
-version to be 0.30.0 to work around probe-rs
-[#3805](https://github.com/probe-rs/probe-rs/issues/3805).
-
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/):
-
-```
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+#### Everyone
 
 Pull in submodules:
 
@@ -90,12 +77,6 @@ Set up the Python virtual environment and install dependencies:
 make fprime-venv
 ```
 
-Pull in west module:
-
-```
-make submodules
-```
-
 At this point you should be able to build:
 
 ```
@@ -105,6 +86,31 @@ make build
 And you can flash a board by plugging it in via USB, holding BOOTSEL, pressing
 RST, releasing BOOTSEL, then copying `build-artifacts/zephyr.uf2` into the
 `RP2350` USB storage device that should have just appeared on your PC.
+
+#### Troubleshooting
+
+It's possible that you may need to install [uv](https://docs.astral.sh/uv/getting-started/installation/):
+
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+
+### Software Flashing
+
+To flash the software onto the board either drag the uf2 to the board as described above or...
+
+Install probe-rs:
+
+```
+cargo install probe-rs-tools --locked --version 0.30.0
+```
+
+`~/.cargo/bin/` should be in your path so that `probe-rs` can be found. We fix
+version to be 0.30.0 to work around probe-rs
+[#3805](https://github.com/probe-rs/probe-rs/issues/3805).
+
+Now you may use the flash commands defined in the `Makefile`.
 
 ### Hardware Setup & Configuration Files
 
