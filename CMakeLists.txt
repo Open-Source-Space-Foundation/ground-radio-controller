@@ -20,8 +20,8 @@ endif()
 
 project(fprime-zephyr-reference C CXX)
 
-# Put in an option to force the device back into programable state for automated testing
-option(FPRIME_CI_FAILSAFE_ENABLED "Cycle count before a forced reset to programable state" OFF)
+# Put in an option to force the device back into programmable state for automated testing
+option(FPRIME_CI_FAILSAFE_ENABLED "Cycle count before a forced reset to programmable state" OFF)
 if (FPRIME_CI_FAILSAFE_ENABLED)
     set(FPRIME_CI_FAILSAFE_CYCLE_COUNT 6000 CACHE STRING "Cycles before a forced reset")
     add_compile_definitions(FPRIME_CI_FAILSAFE_CYCLE_COUNT=${FPRIME_CI_FAILSAFE_CYCLE_COUNT})
@@ -41,5 +41,3 @@ add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/FprimeZephyrReference")
 set_target_properties(Svc_FatalHandler PROPERTIES EXCLUDE_FROM_ALL TRUE)
 set_target_properties(fprime-zephyr_Drv_ZephyrSpiDriver PROPERTIES EXCLUDE_FROM_ALL TRUE)
 set_target_properties(Svc_FileWorker_test_FileTester PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-

@@ -242,4 +242,3 @@ If you're submitting a larger PR, try to follow good practices. I like
 guidelines](https://contributing.godotengine.org/en/latest/pull_requests/pull_request_guidelines.html),
 especially the sections, "Contribute one change at a time" and "Explain your
 contributions".
-

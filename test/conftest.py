@@ -1,8 +1,9 @@
-import pytest
-import serial
 import subprocess
 import time
 from pathlib import Path
+
+import pytest
+import serial
 
 
 def _open_data_port(port: str) -> serial.Serial:

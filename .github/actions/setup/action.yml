@@ -1,7 +1,7 @@
 name: 'Zephyr Reference Setup'
 description: 'Set up Zephyr environment for Zephyr Reference CI'
 inputs:
-  stage: 
+  stage:
     description: "Stage of the CI process"
     required: false
     default: "all"
