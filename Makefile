@@ -6,6 +6,8 @@ MAKEFLAGS := --jobs=2
 
 -include testconfig
 
+export VIRTUAL_ENV ?= $(shell pwd)/fprime-venv
+
 BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
 BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
 BOARD_TWO_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_TWO)-if02
@@ -26,17 +28,22 @@ GDS_ARGS := \
 	--output-unframed-data unframed-data.log \
 	--gui none
 
-clean:
+.PHONY: fprime-venv
+fprime-venv: uv ## Create a virtual environment
+	@$(UV) venv fprime-venv --python 3.10 --allow-existing
+	@VIRTUAL_ENV=$(shell pwd)/fprime-venv $(UV) pip install --prerelease=allow --requirement requirements.txt
+
+clean: ## Remove build artifacts
 	fprime-util purge -f
 
-build-fprime-automatic-zephyr:
-	fprime-util generate
+build-fprime-automatic-zephyr: fprime-venv
+	$(UV_RUN) fprime-util generate
 
-generate-force:
-	fprime-util generate -f
+generate-force: fprime-venv
+	$(UV_RUN) fprime-util generate -f
 
 build: build-fprime-automatic-zephyr
-	fprime-util build
+	$(UV_RUN) fprime-util build
 
 check-no-gds:
 	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then \
@@ -45,13 +52,13 @@ check-no-gds:
 		exit 1; \
 	fi
 
-gds: check-no-gds
-	fprime-gds \
+gds: check-no-gds fprime-venv
+	$(UV_RUN) fprime-gds \
 		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
 		--uart-skip-port-check
 
-menuconfig:
-	fprime-util build --target menuconfig
+menuconfig: fprime-venv
+	$(UV_RUN) fprime-util build --target menuconfig
 
 ONE_BOARD_TEST_TARGETS := bft1 bft1-main test1 test1-main
 TWO_BOARD_TEST_TARGETS := bft2 bft2-main bft2-long test2 test2-main test2-long
@@ -69,20 +76,20 @@ bft2-long test2-long: PYTEST_TESTS := test/two-board/long_test.py
 bft1 bft1-main: check-no-gds flash1
 bft2 bft2-main bft2-long: check-no-gds flash2
 
-$(BFT_TARGETS):
+$(BFT_TARGETS): fprime-venv
 	# Serial port symlinks seem to appear and disappear briefly after device is first
 	# flashed. Can't find a good event to block on to be sure they're stable.
 	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
 	# `sleep 1` and forget about it.
 
-	setsid fprime-gds $(GDS_ARGS) 2>&1 & \
+	setsid $(UV_RUN) fprime-gds $(GDS_ARGS) 2>&1 & \
 	GDS_PID=$$!; \
 	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT; \
 	sleep 1; \
-	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+	$(UV_RUN) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
-$(TEST_TARGETS):
-	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+$(TEST_TARGETS): fprime-venv
+	$(UV_RUN) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
 gdb1 attach1 flash1: ACTIVE_PROBE := $(PROBE_ONE)
 gdb2 attach2 flash2only: ACTIVE_PROBE := $(PROBE_TWO)
@@ -100,4 +107,6 @@ attach1 attach2:
 	probe-rs attach --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
 
 
-.PHONY: clean generate-force build flash1 flash2 gds gdb1 gdb2 attach1 attach2 $(BFT_TARGETS) $(TEST_TARGETS) check-no-gds menuconfig
+.PHONY: clean generate-force build flash1 flash2 gds gdb1 gdb2 attach1 attach2 $(BFT_TARGETS) $(TEST_TARGETS) check-no-gds menuconfig fprime-venv
+
+include makelib/build-tools.mk

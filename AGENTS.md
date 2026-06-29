@@ -1,5 +1,5 @@
-Every command must be run within venv `./fprime-venv`. So, rather than `foo`,
-run `source fprime-venv/bin/activate && foo`.
+Every command is run within the venv `./fprime-venv` automatically via `uv`. Use `make fprime-venv`
+to create or update the virtual environment. Most targets automatically depend on it.
 
 The tests are located in `test/one-board/main_test.py`,
 `test/two-board/main_test.py`, and `test/two-board/long_test.py`.
@@ -10,7 +10,7 @@ run one-board main tests, and `make bft2` to run the two-board tests.
 
 Sometimes, especially after the user has polluted the workspace with lots of
 worktree changes via git, the generate cache is corrupted and you will get an
-inexplicable build error. Running `fprime-util generate -f` will force a clean
+inexplicable build error. Running `make generate-force` will force a clean
 generate and can sometimes fix these errors.
 
 There are three submodules, `lib/fprime`, `lib/fprime-zephyr`, and
