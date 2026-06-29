@@ -54,7 +54,7 @@ frequency of the broadcast.
 
 ### Software Setup
 
-Install [Zehpyr dependencies:](https://docs.zephyrproject.org/latest/develop/getting_started/index.html#install-dependencies)
+Install [Zephyr dependencies:](https://docs.zephyrproject.org/latest/develop/getting_started/index.html#install-dependencies)
 
 ```
 sudo apt install --no-install-recommends git cmake ninja-build gperf \
@@ -72,32 +72,28 @@ cargo install probe-rs-tools --locked --version 0.30.0
 version to be 0.30.0 to work around probe-rs
 [#3805](https://github.com/probe-rs/probe-rs/issues/3805).
 
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/):
+
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
 Pull in submodules:
 
 ```
 git submodule update --init --recursive
 ```
 
-Set up virtual environment:
+Set up the Python virtual environment and install dependencies:
 
 ```
-mkdir venv
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+make fprime-venv
 ```
 
-Pull in west module (must be done in venv):
+Pull in west module:
 
 ```
-west update
-```
-
-
-Set up formatting git hooks:
-
-```
-git config core.hooksPath githooks
+make submodules
 ```
 
 At this point you should be able to build:
