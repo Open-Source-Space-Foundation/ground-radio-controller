@@ -25,7 +25,7 @@ zephyr-config: fprime-venv ## Configure west
 	}
 
 .PHONY: zephyr-workspace
-zephyr-workspace: fprime-venv ## Setup Zephyr bootloader, modules, and tools directories
+zephyr-workspace: zephyr-config ## Setup Zephyr bootloader, modules, and tools directories
 	$(WESTX) update; \
 
 
@@ -35,7 +35,7 @@ clean-zephyr-workspace: ## Remove Zephyr bootloader, modules, and tools director
 
 CMAKE_PACKAGES ?= ~/.cmake/packages
 .PHONY: zephyr-export
-zephyr-export: fprime-venv ## Export Zephyr environment variables
+zephyr-export: zephyr-workspace ## Export Zephyr environment variables
 	@test -d $(CMAKE_PACKAGES)/Zephyr/ || \
 	test -d $(CMAKE_PACKAGES)/ZephyrUnittest/ || \
 	{ \
@@ -47,7 +47,7 @@ clean-zephyr-export: ## Remove Zephyr exported files
 	rm -rf $(CMAKE_PACKAGES)/Zephyr $(CMAKE_PACKAGES)/ZephyrUnittest/
 
 .PHONY: zephyr-sdk
-zephyr-sdk: fprime-venv ## Install Zephyr SDK
+zephyr-sdk: zephyr-workspace ## Install Zephyr SDK
 	@test -d $(ZEPHYR_SDK_PATH) || { \
 		$(WEST) sdk install --toolchains arm-zephyr-eabi; \
 	}
@@ -57,5 +57,5 @@ clean-zephyr-sdk: ## Remove Zephyr SDK
 	rm -rf $(ZEPHYR_SDK_PATH)
 
 .PHONY: zephyr-python-deps
-zephyr-python-deps: fprime-venv ## Install Zephyr Python dependencies
+zephyr-python-deps: zephyr-workspace ## Install Zephyr Python dependencies
 	@$(WEST) uv pip --install -- --prerelease=allow --quiet

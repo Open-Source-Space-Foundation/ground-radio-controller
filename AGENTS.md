@@ -17,10 +17,13 @@ Makefile prerequisites:
   that live inside the submodules (`lib/fprime/requirements.txt` and
   `lib/zephyr-workspace/zephyr/scripts/*.txt`). It therefore depends on
   `submodules`.
-- The `zephyr` setup targets (`zephyr-config`, `zephyr-workspace`,
-  `zephyr-export`, `zephyr-python-deps`, `zephyr-sdk`) depend on `fprime-venv`
-  because they run `west` from the venv. `zephyr-export` additionally requires
-  the west workspace to be initialized (`zephyr-workspace`).
+- The `zephyr` setup targets form a chain rather than all hanging off
+  `fprime-venv` directly:
+  `zephyr-config` (`west init`) → `zephyr-workspace` (`west update`) →
+  `zephyr-export`, `zephyr-python-deps`, and `zephyr-sdk`. The latter three run
+  `west` extension commands (e.g. `west zephyr-export`, `west sdk install`,
+  `west uv pip`) that are only defined once `west update` has pulled the Zephyr
+  modules, so they must depend on `zephyr-workspace`, not just `fprime-venv`.
 
 When adding a build step that consumes files produced by another step, add the
 corresponding `make` prerequisite rather than assuming run order.
