@@ -22,6 +22,10 @@ pre-commit-install: uv ## Install pre-commit hooks
 fmt: pre-commit-install ## Lint and format files
 	@$(UVX) pre-commit run --all-files
 
+.PHONY: submodules
+submodules: ## Initialize and update git submodules
+	@git submodule update --init --recursive
+
 BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
 BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
 BOARD_TWO_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_TWO)-if02
