@@ -50,7 +50,7 @@ fprime-venv: uv ## Create a virtual environment
 clean: ## Remove build artifacts
 	fprime-util purge -f
 
-build-fprime-automatic-zephyr: fprime-venv
+build-fprime-automatic-zephyr: fprime-venv zephyr-config zephyr-workspace zephyr-export zephyr-python-deps zephyr-sdk
 	$(UV_RUN) fprime-util generate
 
 generate-force: fprime-venv
@@ -124,3 +124,4 @@ attach1 attach2:
 .PHONY: help clean generate-force build flash1 flash2 gds gdb1 gdb2 attach1 attach2 $(BFT_TARGETS) $(TEST_TARGETS) check-no-gds menuconfig fprime-venv pre-commit-install fmt
 
 include makelib/build-tools.mk
+include makelib/zephyr.mk
