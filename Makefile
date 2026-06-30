@@ -51,18 +51,24 @@ fprime-venv: uv ## Create a virtual environment
 	@$(UV) venv fprime-venv --python 3.10 --allow-existing
 	@VIRTUAL_ENV=$(shell pwd)/fprime-venv $(UV) pip install --prerelease=allow --requirement requirements.txt
 
-clean: ## Remove build artifacts
-	fprime-util purge -f
+.PHONY: clean
+clean: ## Remove all gitignored files
+	git clean -dfX
 
-build-fprime-automatic-zephyr: fprime-venv zephyr-config zephyr-workspace zephyr-export zephyr-python-deps zephyr-sdk
-	$(UV_RUN) fprime-util generate
+.PHONY: generate
+generate: submodules fprime-venv zephyr ## Generate FPrime project
+	@$(UV_RUN) fprime-util generate --force
 
-generate-force: fprime-venv
-	$(UV_RUN) fprime-util generate -f
+.PHONY: generate-if-needed
+BUILD_DIR ?= $(shell pwd)/build-fprime-automatic-zephyr
+generate-if-needed: submodules fprime-venv zephyr
+	@test -d $(BUILD_DIR) || $(UV_RUN) fprime-util generate --force
 
-build: build-fprime-automatic-zephyr
-	$(UV_RUN) fprime-util build
+.PHONY: build
+build: generate-if-needed ## Build FPrime project
+	@$(UV_RUN) fprime-util build
 
+.PHONY: check-no-gds
 check-no-gds:
 	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then \
 		echo 'There are running GDS processes which will interfere with tests.' \
@@ -70,11 +76,13 @@ check-no-gds:
 		exit 1; \
 	fi
 
+.PHONY: gds
 gds: check-no-gds fprime-venv
 	$(UV_RUN) fprime-gds \
 		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
 		--uart-skip-port-check
 
+.PHONY: menuconfig
 menuconfig: fprime-venv
 	$(UV_RUN) fprime-util build --target menuconfig
 
@@ -94,6 +102,7 @@ bft2-long test2-long: PYTEST_TESTS := test/two-board/long_test.py
 bft1 bft1-main: check-no-gds flash1
 bft2 bft2-main bft2-long: check-no-gds flash2
 
+.PHONY: $(BFT_TARGETS)
 $(BFT_TARGETS): fprime-venv
 	# Serial port symlinks seem to appear and disappear briefly after device is first
 	# flashed. Can't find a good event to block on to be sure they're stable.
@@ -106,26 +115,30 @@ $(BFT_TARGETS): fprime-venv
 	sleep 1; \
 	$(UV_RUN) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
+.PHONY: $(TEST_TARGETS)
 $(TEST_TARGETS): fprime-venv
 	$(UV_RUN) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
 gdb1 attach1 flash1: ACTIVE_PROBE := $(PROBE_ONE)
 gdb2 attach2 flash2only: ACTIVE_PROBE := $(PROBE_TWO)
 
+.PHONY: flash1 flash2only
 flash1 flash2only: build
 	probe-rs download --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)" ./build-artifacts/zephyr.elf
 	probe-rs reset --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)"
 
+.PHONY: flash2
 flash2: flash1 flash2only
 
+.PHONY: gdb1 gdb2
 gdb1 gdb2:
 	probe-rs gdb --gdb gdb-multiarch --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
 
+.PHONY: attach1 attach2
 attach1 attach2:
 	probe-rs attach --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
 
-
-.PHONY: help clean generate-force build flash1 flash2 gds gdb1 gdb2 attach1 attach2 $(BFT_TARGETS) $(TEST_TARGETS) check-no-gds menuconfig fprime-venv pre-commit-install fmt
-
 include makelib/build-tools.mk
 include makelib/zephyr.mk
+
+export UV_BIN := $(UV)

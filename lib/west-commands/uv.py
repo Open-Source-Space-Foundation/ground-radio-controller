@@ -180,10 +180,14 @@ class Uv(WestCommand):
                 self.die("Running pip install outside of a virtual environment")
 
             if len(requirements) > 0:
+                uv_bin = os.environ.get("UV_BIN", "uv")
+                env = os.environ.copy()
+                env["UV_BIN"] = uv_bin
                 subprocess.check_call(
-                    ["uv", "pip", "install"]
+                    [uv_bin, "pip", "install"]
                     + list(chain.from_iterable([("-r", r) for r in requirements]))
-                    + manager_args
+                    + manager_args,
+                    env=env,
                 )
             else:
                 self.inf("Nothing to install")
