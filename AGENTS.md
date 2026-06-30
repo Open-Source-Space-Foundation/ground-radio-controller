@@ -46,7 +46,7 @@ run one-board main tests, and `make bft2` to run the two-board tests.
 
 Sometimes, especially after the user has polluted the workspace with lots of
 worktree changes via git, the generate cache is corrupted and you will get an
-inexplicable build error. Running `make generate-force` will force a clean
+inexplicable build error. Running `make generate` will force a clean
 generate and can sometimes fix these errors.
 
 There are three submodules, `lib/fprime`, `lib/fprime-zephyr`, and

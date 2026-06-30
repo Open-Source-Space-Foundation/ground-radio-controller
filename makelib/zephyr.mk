@@ -8,7 +8,9 @@ WESTX ?= $(UVX) west
 
 ZEPHYR_PATH ?= lib/zephyr-workspace/zephyr
 ifeq ($(origin SDK_VERSION), undefined)
-SDK_VERSION := $(strip $(shell test -f "$(ZEPHYR_PATH)/SDK_VERSION" && cat "$(ZEPHYR_PATH)/SDK_VERSION"))
+# Recursive (=) so it is evaluated lazily, after zephyr-workspace populates
+# $(ZEPHYR_PATH) on a fresh checkout, rather than at parse time.
+SDK_VERSION = $(strip $(shell test -f "$(ZEPHYR_PATH)/SDK_VERSION" && cat "$(ZEPHYR_PATH)/SDK_VERSION"))
 endif
 ZEPHYR_SDK_PATH ?= $(HOME)/zephyr-sdk-$(SDK_VERSION)
 
@@ -31,7 +33,7 @@ zephyr-workspace: zephyr-config ## Setup Zephyr bootloader, modules, and tools d
 
 .PHONY: clean-zephyr-workspace
 clean-zephyr-workspace: ## Remove Zephyr bootloader, modules, and tools directories
-	git submodule deinit --all -f
+	rm -rf lib/zephyr-workspace/bootloader lib/zephyr-workspace/modules lib/zephyr-workspace/tools
 
 CMAKE_PACKAGES ?= ~/.cmake/packages
 .PHONY: zephyr-export

@@ -23,7 +23,7 @@ usbipd bind --busid <BUSID_USB_PWR> --wsl
 usbipd bind --busid <BUSID_USER_USB> --wsl
 ```
 
-5. On WSL confirm visibility of USB device:
+4. On WSL confirm visibility of USB device:
 ```sh
 ls /dev/ttyACM*
 ```
