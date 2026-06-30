@@ -57,29 +57,17 @@ frequency of the broadcast.
 Install [Zephyr dependencies:](https://docs.zephyrproject.org/latest/develop/getting_started/index.html#install-dependencies)
 
 #### Linux
-```
+```sh
 sudo apt install --no-install-recommends git cmake ninja-build gperf \
-  ccache dfu-util device-tree-compiler wget python3-dev python3-venv python3-tk \
-  xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
+  ccache dfu-util device-tree-compiler wget xz-utils file make gcc \
+  gcc-multilib g++-multilib libsdl2-dev libmagic1
 ```
 
 #### Everyone
 
-Pull in submodules:
+Get started with:
 
-```
-git submodule update --init --recursive
-```
-
-Set up the Python virtual environment and install dependencies:
-
-```
-make fprime-venv
-```
-
-At this point you should be able to build:
-
-```
+```sh
 make build
 ```
 
@@ -87,14 +75,11 @@ And you can flash a board by plugging it in via USB, holding BOOTSEL, pressing
 RST, releasing BOOTSEL, then copying `build-artifacts/zephyr.uf2` into the
 `RP2350` USB storage device that should have just appeared on your PC.
 
-#### Troubleshooting
-
-It's possible that you may need to install [uv](https://docs.astral.sh/uv/getting-started/installation/):
+If you get lost try:
 
 ```sh
-curl -LsSf https://astral.sh/uv/install.sh | sh
+make help
 ```
-
 
 ### Software Flashing
 
@@ -102,7 +87,7 @@ To flash the software onto the board either drag the uf2 to the board as describ
 
 Install probe-rs:
 
-```
+```sh
 cargo install probe-rs-tools --locked --version 0.30.0
 ```
 

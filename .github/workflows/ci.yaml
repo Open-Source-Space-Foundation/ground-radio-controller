@@ -21,30 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Download bin tools
-        run: |
-          make download-bin
-
-      - name: Setup submodules
-        run: |
-          make submodules
-
-      - name: Create python venv
-        run: |
-          make fprime-venv
-
-      - name: Setup Zephyr
-        run: |
-          make zephyr-workspace
-
-      - name: Setup Zephyr Export
-        run: |
-          make zephyr-export
-
-      - name: Install Zephyr Python Dependencies
-        run: |
-          make zephyr-python-deps
-
       - name: Build
         run: |
           make build
