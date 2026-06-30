@@ -1,16 +1,29 @@
 # CI and Build System
 
-The CI workflow builds the project with a sequence of setup steps defined in `.github/workflows/ci.yaml`. The workflow must run these steps in order:
+The CI workflow (`.github/workflows/ci.yaml`) builds the project by running a
+single `make build`. It does not invoke the individual setup steps; instead it
+relies entirely on the Makefile dependency graph to run them in the correct
+order.
 
-1. `make download-bin` - Download uv and other binary tools
-2. `make submodules` - Initialize git submodules
-3. `make fprime-venv` - Create Python virtual environment
-4. `make zephyr-workspace` - Download Zephyr modules via `west update`
-5. `make zephyr-export` - Initialize Zephyr CMake exports (requires west initialized)
-6. `make zephyr-python-deps` - Install Zephyr's Python dependencies
-7. `make build` - Build the project
+`build` depends on `generate-if-needed`, which depends on `submodules`,
+`fprime-venv`, and `zephyr`. The build also runs with `--jobs=2`, so these
+prerequisites can execute in parallel. Because of this, every interdependency
+must be expressed as an explicit prerequisite in the Makefile — ordering cannot
+be assumed from how targets are listed.
 
-**Important:** These steps must run sequentially because they have interdependencies. The `zephyr-export` step requires the west workspace to be initialized (which happens during `zephyr-workspace`), and the build requires all zephyr setup to be complete.
+**Important:** Several steps have interdependencies that must be encoded as
+Makefile prerequisites:
+- `fprime-venv` installs from `requirements.txt`, which `-r`-includes files
+  that live inside the submodules (`lib/fprime/requirements.txt` and
+  `lib/zephyr-workspace/zephyr/scripts/*.txt`). It therefore depends on
+  `submodules`.
+- The `zephyr` setup targets (`zephyr-config`, `zephyr-workspace`,
+  `zephyr-export`, `zephyr-python-deps`, `zephyr-sdk`) depend on `fprime-venv`
+  because they run `west` from the venv. `zephyr-export` additionally requires
+  the west workspace to be initialized (`zephyr-workspace`).
+
+When adding a build step that consumes files produced by another step, add the
+corresponding `make` prerequisite rather than assuming run order.
 
 The west manifest is defined in `west.yml` and `west.yml` specifies which Zephyr modules to download. When modifying the build system or Zephyr dependencies, keep `west.yml` in sync with `proves-core-reference` as a reference implementation.
 

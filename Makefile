@@ -12,6 +12,10 @@ export VIRTUAL_ENV ?= $(shell pwd)/fprime-venv
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
+.PHONY: clean
+clean: ## Remove all gitignored files
+	git clean -dfX
+
 ##@ Development
 
 .PHONY: pre-commit-install
@@ -26,34 +30,10 @@ fmt: pre-commit-install ## Lint and format files
 submodules: ## Initialize and update git submodules
 	@git submodule update --init --recursive
 
-BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
-BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
-BOARD_TWO_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_TWO)-if02
-
-PYTEST_ONE_BOARD_CFG_ARGS := \
-	--probe-usb-id="$(PROBE_USB_ID)" \
-	--probe-one="$(PROBE_ONE)" \
-	--data-port-one="$(BOARD_ONE_DATA_PORT)"
-
-PYTEST_TWO_BOARD_CFG_ARGS := \
-	$(PYTEST_ONE_BOARD_CFG_ARGS) \
-	--probe-two="$(PROBE_TWO)" \
-	--data-port-two="$(BOARD_TWO_DATA_PORT)"
-
-GDS_ARGS := \
-	--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
-	--uart-skip-port-check \
-	--output-unframed-data unframed-data.log \
-	--gui none
-
 .PHONY: fprime-venv
-fprime-venv: uv ## Create a virtual environment
+fprime-venv: uv submodules ## Create a virtual environment
 	@$(UV) venv fprime-venv --python 3.10 --allow-existing
 	@VIRTUAL_ENV=$(shell pwd)/fprime-venv $(UV) pip install --prerelease=allow --requirement requirements.txt
-
-.PHONY: clean
-clean: ## Remove all gitignored files
-	git clean -dfX
 
 .PHONY: generate
 generate: submodules fprime-venv zephyr ## Generate FPrime project
@@ -85,6 +65,26 @@ gds: check-no-gds fprime-venv
 .PHONY: menuconfig
 menuconfig: fprime-venv
 	$(UV_RUN) fprime-util build --target menuconfig
+
+BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
+BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
+BOARD_TWO_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_TWO)-if02
+
+PYTEST_ONE_BOARD_CFG_ARGS := \
+	--probe-usb-id="$(PROBE_USB_ID)" \
+	--probe-one="$(PROBE_ONE)" \
+	--data-port-one="$(BOARD_ONE_DATA_PORT)"
+
+PYTEST_TWO_BOARD_CFG_ARGS := \
+	$(PYTEST_ONE_BOARD_CFG_ARGS) \
+	--probe-two="$(PROBE_TWO)" \
+	--data-port-two="$(BOARD_TWO_DATA_PORT)"
+
+GDS_ARGS := \
+	--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
+	--uart-skip-port-check \
+	--output-unframed-data unframed-data.log \
+	--gui none
 
 ONE_BOARD_TEST_TARGETS := bft1 bft1-main test1 test1-main
 TWO_BOARD_TEST_TARGETS := bft2 bft2-main bft2-long test2 test2-main test2-long
