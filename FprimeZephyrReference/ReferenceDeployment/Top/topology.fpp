@@ -6,7 +6,6 @@ module ReferenceDeployment {
 
   enum Ports_RateGroups {
     rateGroup100Hz
-    rateGroup10Hz
     rateGroup1Hz
   }
 
@@ -23,19 +22,21 @@ module ReferenceDeployment {
   # ----------------------------------------------------------------------
     instance chronoTime
     instance rateGroup100Hz
-    instance rateGroup10Hz
     instance rateGroup1Hz
-    instance fileManager
-    instance fileUplink
-    instance cmdSeq
     instance rateGroupDriver
     instance timer
     instance controlUartDriver
     instance dataUartDriver
     instance dataBufferManager
+    instance dataFrameBufferManager
     instance uhf
     instance prmDb
-    instance byteComBridge
+    instance dataComStub
+    instance dataFrameAccumulator
+    instance uplinkPassThrough
+    instance uplinkComQueue
+    instance downlinkPassThrough
+    instance downlinkComQueue
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
@@ -68,10 +69,6 @@ module ReferenceDeployment {
       ComCcsds.fprimeRouter.commandOut -> CdhCore.cmdDisp.seqCmdBuff
       CdhCore.cmdDisp.seqCmdStatus -> ComCcsds.fprimeRouter.cmdResponseIn
 
-      # Router <-> FileUplink
-      ComCcsds.fprimeRouter.fileOut -> fileUplink.bufferSendIn
-      fileUplink.bufferSendOut -> ComCcsds.fprimeRouter.fileBufferReturnIn
-
     }
 
     connections Communications {
@@ -92,19 +89,39 @@ module ReferenceDeployment {
       # dataUartDriver connections
       dataUartDriver.allocate                -> dataBufferManager.bufferGetCallee
       dataUartDriver.deallocate              -> dataBufferManager.bufferSendIn
-      dataUartDriver.$recv                   -> byteComBridge.byteStreamRecv
-      dataUartDriver.ready                   -> byteComBridge.byteStreamReady
-      byteComBridge.byteStreamSend          -> dataUartDriver.$send
-      byteComBridge.byteStreamRecvReturnOut -> dataUartDriver.recvReturnIn
+      dataUartDriver.$recv                   -> dataComStub.drvReceiveIn
+      dataUartDriver.ready                   -> dataComStub.drvConnected
+      dataComStub.drvReceiveReturnOut        -> dataUartDriver.recvReturnIn
+
+      # UART byte stream -> complete CCSDS TC frames
+      dataComStub.dataOut                    -> dataFrameAccumulator.dataIn
+      dataFrameAccumulator.dataReturnOut     -> dataComStub.dataReturnIn
+      dataFrameAccumulator.bufferAllocate    -> dataFrameBufferManager.bufferGetCallee
+      dataFrameAccumulator.bufferDeallocate  -> dataFrameBufferManager.bufferSendIn
+
+      # Complete TC frames -> queued LoRa uplink
+      dataFrameAccumulator.dataOut           -> uplinkPassThrough.dataIn
+      uplinkPassThrough.allPacketsOut        -> uplinkComQueue.bufferQueueIn[0]
+      uplinkComQueue.bufferReturnOut[0]      -> uplinkPassThrough.allPacketsReturnIn
+      uplinkPassThrough.dataReturnOut        -> dataFrameAccumulator.dataReturnIn
 
       # UHF connections
       uhf.allocate                   -> dataBufferManager.bufferGetCallee
       uhf.deallocate                 -> dataBufferManager.bufferSendIn
-      uhf.dataOut                    -> byteComBridge.comDataIn
-      uhf.comStatusOut               -> byteComBridge.comStatusIn
-      uhf.dataReturnOut              -> byteComBridge.comDataReturnIn
-      byteComBridge.comDataOut       -> uhf.dataIn
-      byteComBridge.comDataReturnOut -> uhf.dataReturnIn
+      uplinkComQueue.dataOut         -> uhf.dataIn
+      uhf.dataReturnOut              -> uplinkComQueue.dataReturnIn
+      uhf.comStatusOut               -> uplinkComQueue.comStatusIn
+
+      # LoRa downlink -> queued UART byte stream
+      uhf.dataOut                              -> downlinkPassThrough.dataIn
+      downlinkPassThrough.allPacketsOut       -> downlinkComQueue.bufferQueueIn[0]
+      downlinkComQueue.bufferReturnOut[0]     -> downlinkPassThrough.allPacketsReturnIn
+      downlinkPassThrough.dataReturnOut       -> uhf.dataReturnIn
+
+      downlinkComQueue.dataOut                -> dataComStub.dataIn
+      dataComStub.dataReturnOut               -> downlinkComQueue.dataReturnIn
+      dataComStub.comStatusOut                -> downlinkComQueue.comStatusIn
+      dataComStub.drvSendOut                  -> dataUartDriver.$send
 
     }
 
@@ -117,10 +134,6 @@ module ReferenceDeployment {
       rateGroup100Hz.RateGroupMemberOut[0] -> controlUartDriver.schedIn
       rateGroup100Hz.RateGroupMemberOut[1] -> dataUartDriver.schedIn
 
-      # High rate (10Hz) rate group
-      rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
-      rateGroup10Hz.RateGroupMemberOut[0] -> fileManager.schedIn
-
       # Slow rate (1Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1Hz] -> rateGroup1Hz.CycleIn
       rateGroup1Hz.RateGroupMemberOut[0] -> ComCcsds.comQueue.run
@@ -129,12 +142,8 @@ module ReferenceDeployment {
       rateGroup1Hz.RateGroupMemberOut[3] -> CdhCore.tlmSend.Run
       rateGroup1Hz.RateGroupMemberOut[4] -> ComCcsds.aggregator.timeout
       rateGroup1Hz.RateGroupMemberOut[5] -> CdhCore.cmdDisp.run
-      rateGroup1Hz.RateGroupMemberOut[6] -> cmdSeq.schedIn
-    }
-
-    connections CmdSeq {
-      cmdSeq.comCmdOut -> CdhCore.cmdDisp.seqCmdBuff[1]
-      CdhCore.cmdDisp.seqCmdStatus[1] -> cmdSeq.cmdResponseIn
+      rateGroup1Hz.RateGroupMemberOut[6] -> uplinkComQueue.run
+      rateGroup1Hz.RateGroupMemberOut[7] -> downlinkComQueue.run
     }
 
     connections ReferenceDeployment {

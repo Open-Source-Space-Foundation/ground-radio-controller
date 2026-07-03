@@ -9,10 +9,10 @@
     "Svc.TlmChan": "CdhCore.tlmSend",
     "Svc.Health": "CdhCore.health",
     "Svc.Version": "CdhCore.version",
-    
+
     "Svc.AssertFatalAdapter": "CdhCore.fatalAdapter",
     "Svc.FatalHandler": "CdhCore.fatalHandler",
-    
+
     "Svc.ComQueue": "ComCcsds.comQueue",
     "Svc.FrameAccumulator": "ComCcsds.frameAccumulator"
 }

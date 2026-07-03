@@ -1,13 +1,23 @@
-"""
-These tests require two boards be flashed with radio controller software and
-connected to the PC.
-"""
+"""These tests require two flashed boards connected to the PC."""
 
-import time
+import pytest
+from fprime_gds.common.communication.ccsds.space_data_link import (
+    SpaceDataLinkFramerDeframer,
+)
 
 BASELINE_FREQUENCY_HZ = 437400000
 PASS_FREQUENCY_HZ = 437425000
 FAIL_FREQUENCY_HZ = 437435000
+MAX_LORA_DATA_FRAME_SIZE = 248
+TC_FRAME_OVERHEAD_SIZE = 7
+SCID = 0x44
+VCID = 1
+
+
+def _tc_frame(payload: bytes) -> bytes:
+    return SpaceDataLinkFramerDeframer(scid=SCID, vcid=VCID, frame_size=None).frame(
+        payload
+    )
 
 
 def _assert_no_warnings(fprime_test_api):
@@ -19,39 +29,93 @@ def _assert_no_warnings(fprime_test_api):
     assert not warnings, "Unexpected warning events:\n" + "\n".join(warnings)
 
 
-def test_open_data_ports(fprime_test_api, data_port_one, data_port_two):
-    assert data_port_one.is_open
-    assert data_port_two.is_open
-
-
-def test_link_one_to_two(fprime_test_api, data_port_one, data_port_two):
+def test_link_one_to_two_one_packet(fprime_test_api, data_port_one, data_port_two):
     try:
-        sent = b"\0"
+        sent = _tc_frame(b"one-packet")
         data_port_one.write(sent)
-        data_port_one.flush()
+
         received = data_port_two.read(len(sent))
         assert received == sent, "Timed out waiting for data from board two"
     finally:
         _assert_no_warnings(fprime_test_api)
 
 
-def test_link_one_to_two_single_252_byte_write(
+def test_link_recovers_after_frame_buffer_exhaustion(
     fprime_test_api, data_port_one, data_port_two
 ):
+    max_size_packet = _tc_frame(
+        b"x" * (MAX_LORA_DATA_FRAME_SIZE - TC_FRAME_OVERHEAD_SIZE)
+    )
+
+    data_port_one.write(max_size_packet + max_size_packet)
+
+    assert fprime_test_api.await_event(
+        "ReferenceDeployment.dataFrameAccumulator.NoBufferAvailable", timeout=2
+    )
+
+    data_port_two.read(len(max_size_packet))
+
+    # Verify packet can come through after GRC has time to return the buffer
+    data_port_one.write(max_size_packet)
+
+    assert data_port_two.read(len(max_size_packet)) == max_size_packet
+
+
+# Known FrameAccumulator bug: when a detected frame hits NoBufferAvailable while
+# the accumulation ring is not full, F Prime leaves that frame at the head of the
+# ring. Later input can deliver the stale frame instead of the newly sent frame,
+# causing data lag and repeated NoBufferAvailable warnings.
+@pytest.mark.xfail(reason="Known FrameAccumulator stale-frame bug", strict=True)
+def test_known_bug_link_lags_after_frame_buffer_exhaustion(
+    fprime_test_api, data_port_one, data_port_two
+):
+    payload_size = 50 - TC_FRAME_OVERHEAD_SIZE
+    initial_packets = [
+        _tc_frame(f"initial-{i}".encode().ljust(payload_size, b"x")) for i in range(2)
+    ]
+    recovery_packets = [
+        _tc_frame(f"recovery-{i}".encode().ljust(payload_size, b"x")) for i in range(10)
+    ]
+
+    data_port_one.write(b"".join(initial_packets))
+
+    assert fprime_test_api.await_event(
+        "ReferenceDeployment.dataFrameAccumulator.NoBufferAvailable", timeout=2
+    )
+    fprime_test_api.clear_histories()
+
+    data_port_two.read(len(initial_packets[0]))
+
+    # Verify packets can come through after GRC has time to return the buffer
+    for packet in recovery_packets:
+        data_port_one.write(packet)
+        assert data_port_two.read(len(packet)) == packet
+
+    _assert_no_warnings(fprime_test_api)
+
+
+def test_link_drops_unframed_bytes(fprime_test_api, data_port_one, data_port_two):
     try:
-        sent = bytes(range(252))
+        packets = [_tc_frame(b"first"), _tc_frame(b"second")]
+        received_packets = []
 
+        sent = b"junk-before" + packets[0] + b"junk-between"
         assert data_port_one.write(sent) == len(sent)
-        data_port_one.flush()
+        received_packets.append(data_port_two.read(len(packets[0])))
 
-        received = data_port_two.read(len(sent))
-        assert received == sent, "Timed out waiting for 252-byte payload from board two"
+        assert data_port_one.write(packets[1]) == len(packets[1])
+        received_packets.append(data_port_two.read(len(packets[1])))
+
+        assert received_packets == packets, (
+            f"Expected {len(packets)} framed packets from board two, "
+            f"received {sum(received == expected for received, expected in zip(received_packets, packets))}"
+        )
     finally:
         _assert_no_warnings(fprime_test_api)
 
 
 def test_link_survives_valid_freq_change(fprime_test_api, data_port_one, data_port_two):
-    sent = b"cfgud"
+    sent = _tc_frame(b"freq-ok")
 
     fprime_test_api.send_and_assert_command(
         "ReferenceDeployment.uhf.SET_FREQ",
@@ -65,7 +129,7 @@ def test_link_survives_valid_freq_change(fprime_test_api, data_port_one, data_po
             timeout=2,
         )
         data_port_one.write(sent)
-        data_port_one.flush()
+
         received = data_port_two.read(len(sent))
         assert received == sent, (
             "Timed out waiting for data from board two after frequency change"
@@ -82,7 +146,7 @@ def test_link_survives_valid_freq_change(fprime_test_api, data_port_one, data_po
 def test_link_breaks_after_mismatched_freq(
     fprime_test_api, data_port_one, data_port_two
 ):
-    sent = b"cfbad"
+    sent = _tc_frame(b"freq-bad")
 
     fprime_test_api.send_and_assert_command(
         "ReferenceDeployment.uhf.SET_FREQ",
@@ -96,7 +160,7 @@ def test_link_breaks_after_mismatched_freq(
             timeout=2,
         )
         data_port_one.write(sent)
-        data_port_one.flush()
+
         received = data_port_two.read(len(sent))
         assert received != sent, (
             "Unexpectedly received payload across mismatched frequencies"

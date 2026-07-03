@@ -8,14 +8,8 @@
 // Note: Uncomment when using Svc:TlmPacketizer
 // #include <FprimeZephyrReference/ReferenceDeployment/Top/ReferenceDeploymentPacketsAc.hpp>
 
-// Necessary project-specified types
-#include <Fw/Types/MallocAllocator.hpp>
-
 // Allows easy reference to objects in FPP/autocoder required namespaces
 using namespace ReferenceDeployment;
-
-// Instantiate a malloc allocator for cmdSeq buffer allocation
-Fw::MallocAllocator mallocator;
 
 constexpr FwSizeType BASE_RATEGROUP_PERIOD_MS = 1;  // 1Khz
 
@@ -24,18 +18,16 @@ constexpr FwSizeType getRateGroupPeriod(const FwSizeType hz) {
     return 1000 / (hz * BASE_RATEGROUP_PERIOD_MS);
 }
 
-// The reference topology divides the incoming clock signal (1Hz) into sub-signals: 1Hz, 1/2Hz, and 1/4Hz with 0 offset
+// The reference topology divides the incoming clock signal into sub-signals with 0 offset.
 Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{
     // Array of divider objects
     {getRateGroupPeriod(100), 0},  // 100Hz
-    {getRateGroupPeriod(10), 0},   // 10Hz
     {getRateGroupPeriod(1), 0},    // 1Hz
 }};
 
 // Rate groups may supply a context token to each of the attached children whose purpose is set by the project. The
 // reference topology sets each token to zero as these contexts are unused in this project.
 U32 rateGroup100HzContext[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {getRateGroupPeriod(100)};
-U32 rateGroup10HzContext[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {getRateGroupPeriod(10)};
 U32 rateGroup1HzContext[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {getRateGroupPeriod(1)};
 
 /**
@@ -50,10 +42,7 @@ void configureTopology() {
     rateGroupDriver.configure(rateGroupDivisorsSet);
     // Rate groups require context arrays.
     rateGroup100Hz.configure(rateGroup100HzContext, FW_NUM_ARRAY_ELEMENTS(rateGroup100HzContext));
-    rateGroup10Hz.configure(rateGroup10HzContext, FW_NUM_ARRAY_ELEMENTS(rateGroup10HzContext));
     rateGroup1Hz.configure(rateGroup1HzContext, FW_NUM_ARRAY_ELEMENTS(rateGroup1HzContext));
-    // Allocate sequence buffer (5KB is sufficient for typical sequences)
-    cmdSeq.allocateBuffer(0, mallocator, 5 * 1024);
 }
 
 // Public functions for use in main program are namespaced with deployment name ReferenceDeployment
@@ -100,7 +89,6 @@ void teardownTopology(const TopologyState& state) {
     // Autocoded (active component) task clean-up. Functions provided by topology autocoder.
     stopTasks(state);
     freeThreads(state);
-    cmdSeq.deallocateBuffer(mallocator);
     tearDownComponents(state);
 }
 };  // namespace ReferenceDeployment
