@@ -152,6 +152,10 @@ carries an SX1262-based E22-400M30S LoRa module instead of the v5's SX1276.
 The right LoRa driver is picked automatically from the board devicetree.
 After changing boards, regenerate with `make generate-force` before building.
 
+The v5e additionally needs the SX126x wake-up fix from `patches/` applied to
+the Zephyr submodule (see `patches/README.md`); without it, `SET_FREQ`
+intermittently fails to retune the radio in release builds.
+
 ### Workflow
 
 Most important operations in this repo have a Make helper.
