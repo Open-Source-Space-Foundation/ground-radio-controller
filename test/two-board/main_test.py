@@ -47,7 +47,9 @@ def test_link_recovers_after_frame_buffer_exhaustion(
         b"x" * (MAX_LORA_DATA_FRAME_SIZE - TC_FRAME_OVERHEAD_SIZE)
     )
 
-    data_port_one.write(max_size_packet + max_size_packet)
+    # Three packets: one in flight over the radio, one holding the second
+    # pool buffer, and a third to exhaust the two-buffer pool.
+    data_port_one.write(max_size_packet + max_size_packet + max_size_packet)
 
     assert fprime_test_api.await_event(
         "ReferenceDeployment.dataFrameAccumulator.NoBufferAvailable", timeout=2
@@ -71,7 +73,7 @@ def test_known_bug_link_lags_after_frame_buffer_exhaustion(
 ):
     payload_size = 50 - TC_FRAME_OVERHEAD_SIZE
     initial_packets = [
-        _tc_frame(f"initial-{i}".encode().ljust(payload_size, b"x")) for i in range(2)
+        _tc_frame(f"initial-{i}".encode().ljust(payload_size, b"x")) for i in range(3)
     ]
     recovery_packets = [
         _tc_frame(f"recovery-{i}".encode().ljust(payload_size, b"x")) for i in range(10)
