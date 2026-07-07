@@ -54,17 +54,40 @@ frequency of the broadcast.
 
 ### Software Setup
 
-Install [Zehpyr dependencies:](https://docs.zephyrproject.org/latest/develop/getting_started/index.html#install-dependencies)
+Install [Zephyr dependencies:](https://docs.zephyrproject.org/latest/develop/getting_started/index.html#install-dependencies)
 
-```
+#### Linux
+```sh
 sudo apt install --no-install-recommends git cmake ninja-build gperf \
-  ccache dfu-util device-tree-compiler wget python3-dev python3-venv python3-tk \
-  xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
+  ccache dfu-util device-tree-compiler wget xz-utils file make gcc \
+  gcc-multilib g++-multilib libsdl2-dev libmagic1
 ```
+
+#### Everyone
+
+Get started with:
+
+```sh
+make build
+```
+
+And you can flash a board by plugging it in via USB, holding BOOTSEL, pressing
+RST, releasing BOOTSEL, then copying `build-artifacts/zephyr.uf2` into the
+`RP2350` USB storage device that should have just appeared on your PC.
+
+If you get lost try:
+
+```sh
+make help
+```
+
+### Software Flashing
+
+To flash the software onto the board either drag the uf2 to the board as described above or...
 
 Install probe-rs:
 
-```
+```sh
 cargo install probe-rs-tools --locked --version 0.30.0
 ```
 
@@ -72,43 +95,7 @@ cargo install probe-rs-tools --locked --version 0.30.0
 version to be 0.30.0 to work around probe-rs
 [#3805](https://github.com/probe-rs/probe-rs/issues/3805).
 
-Pull in submodules:
-
-```
-git submodule update --init --recursive
-```
-
-Set up virtual environment:
-
-```
-mkdir venv
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-Pull in west module (must be done in venv):
-
-```
-west update
-```
-
-
-Set up formatting git hooks:
-
-```
-git config core.hooksPath githooks
-```
-
-At this point you should be able to build:
-
-```
-make build
-```
-
-And you can flash a board by plugging it in via USB, holding BOOTSEL, pressing
-RST, releasing BOOTSEL, then copying `build-artifacts/zephyr.uf2` into the
-`RP2350` USB storage device that should have just appeared on your PC.
+Now you may use the flash commands defined in the `Makefile`.
 
 ### Hardware Setup & Configuration Files
 
@@ -242,4 +229,3 @@ If you're submitting a larger PR, try to follow good practices. I like
 guidelines](https://contributing.godotengine.org/en/latest/pull_requests/pull_request_guidelines.html),
 especially the sections, "Contribute one change at a time" and "Explain your
 contributions".
-

@@ -5,4 +5,3 @@ ColumnLimit: 120
 AccessModifierOffset: -2
 # There are some funky include order dependencies in reference project, dodge those
 SortIncludes: false
-

@@ -86,4 +86,3 @@ file build-artifacts/zephyr.elf
 
 # ctd = current thread
 macro define ctd _kernel.cpus[0].current
-

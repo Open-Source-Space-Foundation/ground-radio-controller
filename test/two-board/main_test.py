@@ -1,7 +1,6 @@
 """These tests require two flashed boards connected to the PC."""
 
 import pytest
-
 from fprime_gds.common.communication.ccsds.space_data_link import (
     SpaceDataLinkFramerDeframer,
 )

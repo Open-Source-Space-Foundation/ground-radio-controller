@@ -6,6 +6,66 @@ MAKEFLAGS := --jobs=2
 
 -include testconfig
 
+export VIRTUAL_ENV ?= $(shell pwd)/fprime-venv
+
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+.PHONY: clean
+clean: ## Remove all gitignored files
+	git clean -dfX
+
+##@ Development
+
+.PHONY: pre-commit-install
+pre-commit-install: uv ## Install pre-commit hooks
+	@$(UVX) pre-commit install > /dev/null
+
+.PHONY: fmt
+fmt: pre-commit-install ## Lint and format files
+	@$(UVX) pre-commit run --all-files
+
+.PHONY: submodules
+submodules: ## Initialize and update git submodules
+	@git submodule update --init --recursive
+
+.PHONY: fprime-venv
+fprime-venv: uv submodules ## Create a virtual environment
+	@$(UV) venv fprime-venv --python 3.10 --allow-existing
+	@VIRTUAL_ENV=$(shell pwd)/fprime-venv $(UV) pip install --prerelease=allow --requirement requirements.txt
+
+.PHONY: generate
+generate: submodules fprime-venv zephyr ## Generate FPrime project
+	@$(UV_RUN) fprime-util generate --force
+
+.PHONY: generate-if-needed
+BUILD_DIR ?= $(shell pwd)/build-fprime-automatic-zephyr
+generate-if-needed: submodules fprime-venv zephyr
+	@test -d $(BUILD_DIR) || $(UV_RUN) fprime-util generate --force
+
+.PHONY: build
+build: generate-if-needed ## Build FPrime project
+	@$(UV_RUN) fprime-util build
+
+.PHONY: check-no-gds
+check-no-gds:
+	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then \
+		echo 'There are running GDS processes which will interfere with tests.' \
+			'Please kill with `pkill -f "[f]prime-gds|[f]prime_gds"`' 1>&2; \
+		exit 1; \
+	fi
+
+.PHONY: gds
+gds: check-no-gds fprime-venv
+	$(UV_RUN) fprime-gds \
+		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
+		--uart-skip-port-check
+
+.PHONY: menuconfig
+menuconfig: fprime-venv
+	$(UV_RUN) fprime-util build --target menuconfig
+
 BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
 BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
 BOARD_TWO_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_TWO)-if02
@@ -26,33 +86,6 @@ GDS_ARGS := \
 	--output-unframed-data unframed-data.log \
 	--gui none
 
-clean:
-	fprime-util purge -f
-
-build-fprime-automatic-zephyr:
-	fprime-util generate
-
-generate-force:
-	fprime-util generate -f
-
-build: build-fprime-automatic-zephyr
-	fprime-util build
-
-check-no-gds:
-	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then \
-		echo 'There are running GDS processes which will interfere with tests.' \
-			'Please kill with `pkill -f "[f]prime-gds|[f]prime_gds"`' 1>&2; \
-		exit 1; \
-	fi
-
-gds: check-no-gds
-	fprime-gds \
-		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
-		--uart-skip-port-check
-
-menuconfig:
-	fprime-util build --target menuconfig
-
 ONE_BOARD_TEST_TARGETS := bft1 bft1-main test1 test1-main
 TWO_BOARD_TEST_TARGETS := bft2 bft2-main bft2-long test2 test2-main test2-long
 BFT_TARGETS := bft1 bft1-main bft2 bft2-main bft2-long
@@ -69,35 +102,43 @@ bft2-long test2-long: PYTEST_TESTS := test/two-board/long_test.py
 bft1 bft1-main: check-no-gds flash1
 bft2 bft2-main bft2-long: check-no-gds flash2
 
-$(BFT_TARGETS):
+.PHONY: $(BFT_TARGETS)
+$(BFT_TARGETS): fprime-venv
 	# Serial port symlinks seem to appear and disappear briefly after device is first
 	# flashed. Can't find a good event to block on to be sure they're stable.
 	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
 	# `sleep 1` and forget about it.
 
-	setsid fprime-gds $(GDS_ARGS) 2>&1 & \
+	setsid $(UV_RUN) fprime-gds $(GDS_ARGS) 2>&1 & \
 	GDS_PID=$$!; \
 	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT; \
 	sleep 1; \
-	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+	$(UV_RUN) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
-$(TEST_TARGETS):
-	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+.PHONY: $(TEST_TARGETS)
+$(TEST_TARGETS): fprime-venv
+	$(UV_RUN) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
 gdb1 attach1 flash1: ACTIVE_PROBE := $(PROBE_ONE)
 gdb2 attach2 flash2only: ACTIVE_PROBE := $(PROBE_TWO)
 
+.PHONY: flash1 flash2only
 flash1 flash2only: build
 	probe-rs download --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)" ./build-artifacts/zephyr.elf
 	probe-rs reset --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)"
 
+.PHONY: flash2
 flash2: flash1 flash2only
 
+.PHONY: gdb1 gdb2
 gdb1 gdb2:
 	probe-rs gdb --gdb gdb-multiarch --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
 
+.PHONY: attach1 attach2
 attach1 attach2:
 	probe-rs attach --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
 
+include makelib/build-tools.mk
+include makelib/zephyr.mk
 
-.PHONY: clean generate-force build flash1 flash2 gds gdb1 gdb2 attach1 attach2 $(BFT_TARGETS) $(TEST_TARGETS) check-no-gds menuconfig
+export UV_BIN := $(UV)
