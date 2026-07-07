@@ -180,6 +180,10 @@ module ReferenceDeployment {
         """
 
         phase Fpp.ToCpp.Phases.configComponents """
+        ConfigObjects::ReferenceDeployment_dataFrameAccumulator::frameDetector.configure(
+            0,
+            true
+        );
         ReferenceDeployment::dataFrameAccumulator.configure(
             ConfigObjects::ReferenceDeployment_dataFrameAccumulator::frameDetector,
             2,

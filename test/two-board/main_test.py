@@ -12,10 +12,11 @@ MAX_LORA_DATA_FRAME_SIZE = 248
 TC_FRAME_OVERHEAD_SIZE = 7
 SCID = 0x44
 VCID = 1
+ALTERNATE_FRAME_IDS = ((0x45, 3), (0x46, 4))
 
 
-def _tc_frame(payload: bytes) -> bytes:
-    return SpaceDataLinkFramerDeframer(scid=SCID, vcid=VCID, frame_size=None).frame(
+def _tc_frame(payload: bytes, scid: int = SCID, vcid: int = VCID) -> bytes:
+    return SpaceDataLinkFramerDeframer(scid=scid, vcid=vcid, frame_size=None).frame(
         payload
     )
 
@@ -36,6 +37,20 @@ def test_link_one_to_two_one_packet(fprime_test_api, data_port_one, data_port_tw
 
         received = data_port_two.read(len(sent))
         assert received == sent, "Timed out waiting for data from board two"
+    finally:
+        _assert_no_warnings(fprime_test_api)
+
+
+def test_link_allows_different_scids_and_vcids(
+    fprime_test_api, data_port_one, data_port_two
+):
+    try:
+        for index, (scid, vcid) in enumerate(ALTERNATE_FRAME_IDS):
+            sent = _tc_frame(f"alternate-ids-{index}".encode(), scid=scid, vcid=vcid)
+            data_port_one.write(sent)
+
+            received = data_port_two.read(len(sent))
+            assert received == sent, "Timed out waiting for data from board two"
     finally:
         _assert_no_warnings(fprime_test_api)
 
