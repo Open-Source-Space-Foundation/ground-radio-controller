@@ -1,35 +1,3 @@
-# CI and Build System
-
-The CI workflow (`.github/workflows/ci.yaml`) builds the project by running a
-single `make build`. It does not invoke the individual setup steps; instead it
-relies entirely on the Makefile dependency graph to run them in the correct
-order.
-
-`build` depends on `generate-if-needed`, which depends on `submodules`,
-`fprime-venv`, and `zephyr`. The build also runs with `--jobs=2`, so these
-prerequisites can execute in parallel. Because of this, every interdependency
-must be expressed as an explicit prerequisite in the Makefile — ordering cannot
-be assumed from how targets are listed.
-
-**Important:** Several steps have interdependencies that must be encoded as
-Makefile prerequisites:
-- `fprime-venv` installs from `requirements.txt`, which `-r`-includes files
-  that live inside the submodules (`lib/fprime/requirements.txt` and
-  `lib/zephyr-workspace/zephyr/scripts/*.txt`). It therefore depends on
-  `submodules`.
-- The `zephyr` setup targets form a chain rather than all hanging off
-  `fprime-venv` directly:
-  `zephyr-config` (`west init`) → `zephyr-workspace` (`west update`) →
-  `zephyr-export`, `zephyr-python-deps`, and `zephyr-sdk`. The latter three run
-  `west` extension commands (e.g. `west zephyr-export`, `west sdk install`,
-  `west uv pip`) that are only defined once `west update` has pulled the Zephyr
-  modules, so they must depend on `zephyr-workspace`, not just `fprime-venv`.
-
-When adding a build step that consumes files produced by another step, add the
-corresponding `make` prerequisite rather than assuming run order.
-
-The west manifest is defined in `west.yml` and `west.yml` specifies which Zephyr modules to download. When modifying the build system or Zephyr dependencies, keep `west.yml` in sync with `proves-core-reference` as a reference implementation.
-
 ## Environment Setup
 
 Every command is run within the venv `./fprime-venv` automatically via `uv`. Use `make fprime-venv`

@@ -6,11 +6,14 @@ MAKEFLAGS := --jobs=2
 
 -include testconfig
 
-export VIRTUAL_ENV ?= $(shell pwd)/fprime-venv
-
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+include makelib/build-tools.mk
+include makelib/zephyr.mk
+
+export VIRTUAL_ENV ?= $(shell pwd)/fprime-venv
 
 .PHONY: clean
 clean: ## Remove all gitignored files except testconfig
@@ -19,7 +22,7 @@ clean: ## Remove all gitignored files except testconfig
 ##@ Development
 
 .PHONY: pre-commit-install
-pre-commit-install: uv ## Install pre-commit hooks
+pre-commit-install: $(UVX) ## Install pre-commit hooks
 	@$(UVX) pre-commit install > /dev/null
 
 .PHONY: fmt
@@ -31,22 +34,22 @@ submodules: ## Initialize and update git submodules
 	@git submodule update --init --recursive
 
 .PHONY: fprime-venv
-fprime-venv: uv submodules ## Create a virtual environment
+fprime-venv: $(UV) submodules ## Create a virtual environment
 	@$(UV) venv fprime-venv --python 3.10 --allow-existing
-	@VIRTUAL_ENV=$(shell pwd)/fprime-venv $(UV) pip install --prerelease=allow --requirement requirements.txt
+	$(UV) pip install --prerelease=allow --requirement requirements.txt
 
 .PHONY: generate
 generate: submodules fprime-venv zephyr ## Generate FPrime project
-	@$(UV_RUN) fprime-util generate --force
+	@$(IN_VENV) fprime-util generate --force
 
-.PHONY: generate-if-needed
 BUILD_DIR ?= $(shell pwd)/build-fprime-automatic-zephyr
-generate-if-needed: submodules fprime-venv zephyr
-	@test -d $(BUILD_DIR) || $(UV_RUN) fprime-util generate --force
+BUILD_NINJA ?= $(BUILD_DIR)/build.ninja
+$(BUILD_NINJA): | submodules fprime-venv zephyr
+	@$(IN_VENV) fprime-util generate --force
 
 .PHONY: build
-build: generate-if-needed ## Build FPrime project
-	@$(UV_RUN) fprime-util build
+build: $(BUILD_NINJA) ## Build FPrime project
+	@$(IN_VENV) fprime-util build
 
 .PHONY: check-no-gds
 check-no-gds:
@@ -58,13 +61,13 @@ check-no-gds:
 
 .PHONY: gds
 gds: check-no-gds fprime-venv
-	$(UV_RUN) fprime-gds \
+	$(IN_VENV) fprime-gds \
 		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
 		--uart-skip-port-check
 
 .PHONY: menuconfig
 menuconfig: fprime-venv
-	$(UV_RUN) fprime-util build --target menuconfig
+	$(IN_VENV) fprime-util build --target menuconfig
 
 BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
 BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
@@ -109,15 +112,15 @@ $(BFT_TARGETS): fprime-venv
 	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
 	# `sleep 1` and forget about it.
 
-	setsid env $(UV_RUN) fprime-gds $(GDS_ARGS) 2>&1 & \
+	setsid env $(IN_VENV) fprime-gds $(GDS_ARGS) 2>&1 & \
 	GDS_PID=$$!; \
 	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT; \
 	sleep 1; \
-	$(UV_RUN) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+	$(IN_VENV) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
 .PHONY: $(TEST_TARGETS)
 $(TEST_TARGETS): fprime-venv
-	$(UV_RUN) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+	$(IN_VENV) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
 gdb1 attach1 flash1: ACTIVE_PROBE := $(PROBE_ONE)
 gdb2 attach2 flash2only: ACTIVE_PROBE := $(PROBE_TWO)
@@ -137,8 +140,5 @@ gdb1 gdb2:
 .PHONY: attach1 attach2
 attach1 attach2:
 	probe-rs attach --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
-
-include makelib/build-tools.mk
-include makelib/zephyr.mk
 
 export UV_BIN := $(UV)
