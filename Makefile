@@ -109,7 +109,7 @@ $(BFT_TARGETS): fprime-venv
 	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
 	# `sleep 1` and forget about it.
 
-	setsid $(UV_RUN) fprime-gds $(GDS_ARGS) 2>&1 & \
+	setsid env $(UV_RUN) fprime-gds $(GDS_ARGS) 2>&1 & \
 	GDS_PID=$$!; \
 	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT; \
 	sleep 1; \
