@@ -10,10 +10,10 @@ MAKEFLAGS := --jobs=2
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-include makelib/build-tools.mk
 include makelib/zephyr.mk
 
 export VIRTUAL_ENV ?= $(shell pwd)/fprime-venv
+IN_VENV ?= VIRTUAL_ENV=$(shell pwd)/fprime-venv PATH=$(shell pwd)/fprime-venv/bin:$$PATH
 
 .PHONY: clean
 clean: ## Remove all gitignored files except testconfig
@@ -22,21 +22,21 @@ clean: ## Remove all gitignored files except testconfig
 ##@ Development
 
 .PHONY: pre-commit-install
-pre-commit-install: $(UVX) ## Install pre-commit hooks
-	@$(UVX) pre-commit install > /dev/null
+pre-commit-install: ## Install pre-commit hooks
+	@uvx pre-commit install > /dev/null
 
 .PHONY: fmt
 fmt: pre-commit-install ## Lint and format files
-	@$(UVX) pre-commit run --all-files
+	@uvx pre-commit run --all-files
 
 .PHONY: submodules
 submodules: ## Initialize and update git submodules
 	@git submodule update --init --recursive
 
 .PHONY: fprime-venv
-fprime-venv: $(UV) submodules ## Create a virtual environment
-	@$(UV) venv fprime-venv --python 3.10 --allow-existing
-	$(UV) pip install --prerelease=allow --requirement requirements.txt
+fprime-venv: submodules ## Create a virtual environment
+	@uv venv fprime-venv --python 3.10 --allow-existing
+	uv pip install --prerelease=allow --requirement requirements.txt
 
 .PHONY: generate
 generate: submodules fprime-venv zephyr ## Generate FPrime project
@@ -135,10 +135,8 @@ flash2: flash1 flash2only
 
 .PHONY: gdb1 gdb2
 gdb1 gdb2:
-	probe-rs gdb --gdb gdb-multiarch --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
+	probe-rs gdb --gdb gdb --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
 
 .PHONY: attach1 attach2
 attach1 attach2:
 	probe-rs attach --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
-
-export UV_BIN := $(UV)

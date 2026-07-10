@@ -4,7 +4,7 @@
 WEST ?= $(IN_VENV) west
 
 # UVX runs west without the active virtual environment
-WESTX ?= $(UVX) west
+WESTX ?= uvx west
 
 ZEPHYR_PATH ?= lib/zephyr-workspace/zephyr
 WEST_CONFIG ?= .west/config
@@ -28,7 +28,7 @@ clean-zephyr: clean-zephyr-workspace clean-zephyr-export clean-zephyr-sdk
 $(WEST_CONFIG): | fprime-venv
 	$(WEST) init --local .
 
-$(ZEPHYR_WORKSPACE_DIRS) &: | $(WEST_CONFIG) $(UVX)
+$(ZEPHYR_WORKSPACE_DIRS) &: | $(WEST_CONFIG)
 	$(WESTX) update
 
 .PHONY: clean-zephyr-workspace
@@ -38,7 +38,7 @@ clean-zephyr-workspace: ## Remove Zephyr bootloader and modules directories
 $(CMAKE_PACKAGES):
 	mkdir -p "$@"
 
-$(ZEPHYR_EXPORT_DIRS) &: | $(ZEPHYR_WORKSPACE_DIRS) $(UVX) $(CMAKE_PACKAGES)
+$(ZEPHYR_EXPORT_DIRS) &: | $(ZEPHYR_WORKSPACE_DIRS) $(CMAKE_PACKAGES)
 	$(WESTX) zephyr-export
 
 .PHONY: clean-zephyr-export
