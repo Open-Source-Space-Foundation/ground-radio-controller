@@ -6,3 +6,4 @@
     uspRadio.RxProfile
     uspRadio.ProfileTableVersion
     uspRadio.RxReverts
+    uspRadio.RxDropped
