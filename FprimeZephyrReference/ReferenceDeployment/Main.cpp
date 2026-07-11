@@ -97,7 +97,14 @@ int main(int argc, char* argv[]) {
     ReferenceDeployment::TopologyState inputs;
     inputs.controlUartDevice = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart0));
     inputs.dataUartDevice = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart1));
+    // Phase 6 (USP port): v5e's radio node is lora0_usp (bound by usp_zephyr,
+    // not the in-tree Zephyr lora driver) -- RalSessionImpl finds it via the
+    // zephyr,lorawan-transceiver chosen node instead of a DEVICE_DT_GET here.
+    // The legacy lora0 node (ground_radio_controller/v5) only exists when
+    // CONFIG_LORA_BASICS_MODEM_DRIVERS is NOT set.
+#ifndef CONFIG_LORA_BASICS_MODEM_DRIVERS
     inputs.loraDevice = DEVICE_DT_GET(DT_NODELABEL(lora0));
+#endif
     inputs.controlUartBaudRate = 115200;
     inputs.dataUartBaudRate = 115200;
 
