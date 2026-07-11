@@ -23,6 +23,56 @@ GDS_ARGS := \
 	--output-unframed-data unframed-data.log \
 	--gui none
 
+.PHONY: submodules
+submodules: ## Initialize/update git submodules and apply carried lib/fprime patches (issue #432 class)
+	@git submodule update --init --recursive
+	@echo "Applying fprime ComAggregator bounded-timeout patch (issue #432)..."
+	@cd lib/fprime && \
+		if git apply --check ../../patches/fprime-com-aggregator-bounded-timeout.patch 2>/dev/null; then \
+			git apply ../../patches/fprime-com-aggregator-bounded-timeout.patch && \
+			echo "Applied ComAggregator bounded-timeout patch"; \
+		elif git apply --reverse --check ../../patches/fprime-com-aggregator-bounded-timeout.patch 2>/dev/null; then \
+			echo "Already applied: ComAggregator bounded-timeout patch"; \
+		else \
+			echo "Error: unable to apply ComAggregator patch. Run 'cd lib/fprime && git status' to check."; \
+			exit 1; \
+		fi
+	@echo "Applying fprime sched-tick drop patch (issue #432 class)..."
+	@cd lib/fprime && \
+		if git apply --check ../../patches/fprime-sched-tick-drop.patch 2>/dev/null; then \
+			git apply ../../patches/fprime-sched-tick-drop.patch && \
+			echo "Applied sched-tick drop patch"; \
+		elif git apply --reverse --check ../../patches/fprime-sched-tick-drop.patch 2>/dev/null; then \
+			echo "Already applied: sched-tick drop patch"; \
+		else \
+			echo "Error: unable to apply sched-tick drop patch (TlmPacketizer.fpp hunk may need hand-reconciling on a lib/fprime version bump -- see patches/README.md). Run 'cd lib/fprime && git status' to check."; \
+			exit 1; \
+		fi
+
+USP_ZEPHYR_DIR ?= $(shell pwd)/lib/zephyr-workspace/modules/lib/usp_zephyr
+
+.PHONY: usp-patches
+usp-patches: ## Apply usp_zephyr patches (RF-switch GPIO + Zephyr 4.3 compat + wakeup-busy race fix)
+	@if [ ! -d "$(USP_ZEPHYR_DIR)" ]; then \
+		echo "usp_zephyr not found at $(USP_ZEPHYR_DIR) -- run 'west update usp_zephyr usp' first"; \
+		exit 1; \
+	fi
+	@echo "Applying usp_zephyr patches..."
+	@cd "$(USP_ZEPHYR_DIR)" && \
+	for p in $(shell pwd)/patches/0001-feat-sx126x-add-external-RF-switch-GPIO-support-tx-r.patch \
+	          $(shell pwd)/patches/0002-fix-zephyr-4.3-remove-select-ZEPHYR_LORA_BASICS_MODE.patch \
+	          $(shell pwd)/patches/0003-fix-usp-main-2025-fix-LR_FHSS_SRC_PATH-for-flattened.patch \
+	          $(shell pwd)/patches/0006-fix-sx126x-wakeup-busy-race-add-t_woff-settle-delay.patch; do \
+		name=$$(basename $$p); \
+		if git apply --check "$$p" 2>/dev/null; then \
+			git apply "$$p" && echo "Applied $$name"; \
+		elif git apply --reverse --check "$$p" 2>/dev/null; then \
+			echo "Already applied: $$name"; \
+		else \
+			echo "Cannot apply $$name -- check usp_zephyr revision"; exit 1; \
+		fi; \
+	done
+
 clean:
 	fprime-util purge -f
 
