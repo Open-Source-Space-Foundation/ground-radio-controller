@@ -73,6 +73,29 @@ usp-patches: ## Apply usp_zephyr patches (RF-switch GPIO + Zephyr 4.3 compat + w
 		fi; \
 	done
 
+ZEPHYR_DIR ?= $(shell pwd)/lib/zephyr-workspace/zephyr
+
+.PHONY: zephyr-patches
+zephyr-patches: ## Apply Zephyr tree patches (CDC-ACM TX fixes; 0004-equivalent poll-mode drain is already baked into this submodule's pinned commit, so only 0005+0007 are carried here)
+	@if [ ! -d "$(ZEPHYR_DIR)" ]; then \
+		echo "zephyr not found at $(ZEPHYR_DIR) -- run 'west update' first"; \
+		exit 1; \
+	fi
+	@echo "Applying Zephyr patches..."
+	@cd "$(ZEPHYR_DIR)" && \
+	for p in \
+		$(shell pwd)/patches/0005-fix-usbd-cdc-acm-stuck-tx-fifo-busy-on-disable-and-retry.patch \
+		$(shell pwd)/patches/0007-fix-usbd-cdc-acm-bound-poll-out-backpressure-wait.patch; do \
+		name=$$(basename $$p); \
+		if git apply --check "$$p" 2>/dev/null; then \
+			git apply "$$p" && echo "Applied $$name"; \
+		elif git apply --reverse --check "$$p" 2>/dev/null; then \
+			echo "Already applied: $$name"; \
+		else \
+			echo "Cannot apply $$name -- check Zephyr revision"; exit 1; \
+		fi; \
+	done
+
 clean:
 	fprime-util purge -f
 
