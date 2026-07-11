@@ -54,6 +54,13 @@ void configureTopology() {
     rateGroup1Hz.configure(rateGroup1HzContext, FW_NUM_ARRAY_ELEMENTS(rateGroup1HzContext));
     // Allocate sequence buffer (5KB is sufficient for typical sequences)
     cmdSeq.allocateBuffer(0, mallocator, 5 * 1024);
+    // Enable all TlmPacketizer groups and set default rates for the REALTIME section.
+    // loadParameters() runs after configureTopology() and may override these if saved params exist.
+    // Without this, groups remain SILENCED+DISABLED after a fresh flash (empty parameter DB).
+    for (FwChanIdType grp = 0; grp < static_cast<FwChanIdType>(Svc::NUM_CONFIGURABLE_TLMPACKETIZER_GROUPS); grp++) {
+        CdhCore::tlmSend.initGroupRate(
+            Svc::TelemetrySection::REALTIME, grp, Svc::RateLogic::EVERY_MAX, 0, 10);
+    }
 }
 
 // Public functions for use in main program are namespaced with deployment name ReferenceDeployment
