@@ -33,7 +33,8 @@ module ReferenceDeployment {
     instance controlUartDriver
     instance dataUartDriver
     instance dataBufferManager
-    instance uhf
+    # uhf / uspRadio instance declared via RadioTopology.fppi below
+    # (per-board selection, Phase 6 USP port -- see instances.fpp).
     instance prmDb
     instance byteComBridge
 
@@ -96,17 +97,15 @@ module ReferenceDeployment {
       dataUartDriver.ready                   -> byteComBridge.byteStreamReady
       byteComBridge.byteStreamSend          -> dataUartDriver.$send
       byteComBridge.byteStreamRecvReturnOut -> dataUartDriver.recvReturnIn
-
-      # UHF connections
-      uhf.allocate                   -> dataBufferManager.bufferGetCallee
-      uhf.deallocate                 -> dataBufferManager.bufferSendIn
-      uhf.dataOut                    -> byteComBridge.comDataIn
-      uhf.comStatusOut               -> byteComBridge.comStatusIn
-      uhf.dataReturnOut              -> byteComBridge.comDataReturnIn
-      byteComBridge.comDataOut       -> uhf.dataIn
-      byteComBridge.comDataReturnOut -> uhf.dataReturnIn
-
     }
+
+    # Radio (uhf / uspRadio) instance + connections: per-board selection
+    # (Phase 6 USP port). RadioTopology.fppi is a symlink to
+    # RadioTopology_{Lora,Usp}.fppi, created by CMakeLists.txt at configure
+    # time. The Usp variant also adds a RadioRateGroup connections block
+    # (UspRadio is active and needs a run port; uhf/Zephyr.LoRa is passive
+    # and does not).
+    include "RadioTopology.fppi"
 
     connections RateGroups {
       # timer to drive rate group

@@ -100,7 +100,15 @@ module ReferenceDeployment {
         """
     }
 
-  instance uhf: Zephyr.LoRa base id 0x10017000
+  # Radio instance: per-board selection (Phase 6 USP port).
+  #   v5e  (CONFIG_LORA_BASICS_MODEM_DRIVERS=y): RadioInstances_Usp.fppi
+  #     (Zephyr.UspRadio -- ACTIVE, has its own queue/stack/priority despite
+  #     living in this "Passive component instances" section)
+  #   ground_radio_controller / v5 (legacy):     RadioInstances_Lora.fppi
+  #     (Zephyr.LoRa -- passive, as before)
+  # RadioInstances.fppi is a symlink to one of the above, created by
+  # CMakeLists.txt at configure time.
+  include "RadioInstances.fppi"
 
   instance prmDb: Svc.PrmDb base id 0x10018000 \
     queue size Default.QUEUE_SIZE \
