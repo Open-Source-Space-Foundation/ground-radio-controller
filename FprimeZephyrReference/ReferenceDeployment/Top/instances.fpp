@@ -149,7 +149,7 @@ module ReferenceDeployment {
         phase Fpp.ToCpp.Phases.configComponents """
         memset(&ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins, 0, sizeof(ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins));
         ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].bufferSize = ReferenceDeployment::Default::MAX_LORA_DATA_FRAME_SIZE;
-        ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].numBuffers = 1;
+        ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].numBuffers = 2;
         ReferenceDeployment::dataFrameBufferManager.setup(
             88, // randomly chosen mgr ID
             0,
