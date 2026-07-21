@@ -1,9 +1,18 @@
-"""
-These tests require two boards be flashed with radio controller software and
-connected to the PC.
-"""
+"""These tests require two flashed boards connected to the PC."""
 
 import time
+
+from fprime_gds.common.communication.ccsds.space_data_link import (
+    SpaceDataLinkFramerDeframer,
+)
+
+SCID = 0x44
+VCID = 1
+MAX_TC_FRAME_SIZE = 248
+MAX_TC_FRAME_PAYLOAD_SIZE = 241
+LONG_FRAME_COUNT = 64
+PING_PONG_EXCHANGE_COUNT = 32
+PING_PONG_EXCHANGE_MAX_SECONDS = 60.0
 
 
 def _assert_no_warnings(fprime_test_api):
@@ -15,76 +24,94 @@ def _assert_no_warnings(fprime_test_api):
     assert not warnings, "Unexpected warning events:\n" + "\n".join(warnings)
 
 
-def test_link_one_to_two_16k_bytes_one_byte_writes(
+def _tc_frame(payload: bytes) -> bytes:
+    return SpaceDataLinkFramerDeframer(scid=SCID, vcid=VCID, frame_size=None).frame(
+        payload
+    )
+
+
+def test_link_one_to_two_64_max_tc_frames(
     fprime_test_api, data_port_one, data_port_two
 ):
     try:
-        # ByteComBridge emits at most 252 bytes into each LoRa frame. The Semtech
-        # LoRa calculator, https://www.semtech.com/design-support/lora-calculator,
-        # gives 901.63 ms time on air for the deployed modem settings (SF8, 125
-        # kHz, CR 4/5) at a 252-byte payload, which yields 252 * 8 / 0.90163 ~=
-        # 2236 bits/s. Keep the test below that sustained link rate.
-        sent = bytes(range(256)) * 64
-        bitrate = 2000
-        byte_period_seconds = 8 / bitrate
+        frames = [
+            _tc_frame(bytes([frame_number]) * MAX_TC_FRAME_PAYLOAD_SIZE)
+            for frame_number in range(LONG_FRAME_COUNT)
+        ]
+        sent = b"".join(frames)
         received = b""
 
-        for byte in sent:
-            assert data_port_one.write(bytes([byte])) == 1
-            data_port_one.flush()
+        for frame in frames:
+            data_port_one.write(frame)
             received += data_port_two.read_all()
-            time.sleep(byte_period_seconds)
-
+            # A 252-byte LoRa packet has about 902ms time-on-air according to
+            # Semtech calculator at SF8/125 kHz/CR 4/5
+            time.sleep(1.0)
         received += data_port_two.read(len(sent) - len(received))
+
         assert received == sent, (
-            f"Expected {len(sent)} bytes from board two, received {len(received)}"
+            f"Expected {len(frames)} packets from board two, "
+            f"received {len(received) / MAX_TC_FRAME_SIZE:g}"
         )
     finally:
         _assert_no_warnings(fprime_test_api)
 
 
-def test_link_two_to_one_16k_bytes_one_byte_writes(
+def test_link_two_to_one_64_max_tc_frames(
     fprime_test_api, data_port_one, data_port_two
 ):
     try:
-        # See previous test for explanation of magic numbers
-        sent = bytes(range(256)) * 64
-        bitrate = 2000
-        byte_period_seconds = 8 / bitrate
+        frames = [
+            _tc_frame(bytes([frame_number]) * MAX_TC_FRAME_PAYLOAD_SIZE)
+            for frame_number in range(LONG_FRAME_COUNT)
+        ]
+        sent = b"".join(frames)
         received = b""
 
-        for byte in sent:
-            assert data_port_two.write(bytes([byte])) == 1
-            data_port_two.flush()
+        for frame in frames:
+            data_port_two.write(frame)
             received += data_port_one.read_all()
-            time.sleep(byte_period_seconds)
-
-        received += data_port_one.read(len(sent) - len(received))
-        assert received == sent, (
-            f"Expected {len(sent)} bytes from board two, received {len(received)}"
-        )
-    finally:
-        _assert_no_warnings(fprime_test_api)
-
-
-def test_link_one_to_two_six_252_byte_packets(
-    fprime_test_api, data_port_one, data_port_two
-):
-    try:
-        chunk = bytes(range(252))
-        sent = chunk * 6
-
-        for _ in range(6):
-            assert data_port_one.write(chunk) == len(chunk)
-            data_port_one.flush()
-            # The Semtech LoRa calculator reports about 901.63 ms time on air for
-            # a 252-byte payload at SF8, 125 kHz, CR 4/5, so sleep 1 s to leave the
-            # radio enough time to finish each packet before sending the next one.
+            # See comment in one-to-two test
             time.sleep(1.0)
 
-        received = data_port_two.read(len(sent))
+        received += data_port_one.read(len(sent) - len(received))
+
         assert received == sent, (
-            f"Expected {len(sent)} bytes from board two, received {len(received)}"
+            f"Expected {len(frames)} packets from board one, "
+            f"received {len(received) / MAX_TC_FRAME_SIZE:g}"
+        )
+    finally:
+        _assert_no_warnings(fprime_test_api)
+
+
+def test_ping_pong_one_two(fprime_test_api, data_port_one, data_port_two):
+    try:
+        exchanges = [
+            (
+                _tc_frame(bytes([packet_number]) * MAX_TC_FRAME_PAYLOAD_SIZE),
+                _tc_frame(
+                    bytes([packet_number + PING_PONG_EXCHANGE_COUNT])
+                    * MAX_TC_FRAME_PAYLOAD_SIZE
+                ),
+            )
+            for packet_number in range(PING_PONG_EXCHANGE_COUNT)
+        ]
+        received = []
+
+        start = time.monotonic()
+        for outbound, reply in exchanges:
+            data_port_one.write(outbound)
+            received.append(data_port_two.read(len(outbound)))
+
+            data_port_two.write(reply)
+            received.append(data_port_one.read(len(reply)))
+        elapsed = time.monotonic() - start
+
+        assert received == [packet for exchange in exchanges for packet in exchange]
+        assert elapsed < PING_PONG_EXCHANGE_MAX_SECONDS, (
+            f"Expected {PING_PONG_EXCHANGE_COUNT * 2} max-size packets to "
+            f"exchange in less than {PING_PONG_EXCHANGE_MAX_SECONDS:.1f}s, "
+            f"took {elapsed:.1f}s"
         )
     finally:
         _assert_no_warnings(fprime_test_api)

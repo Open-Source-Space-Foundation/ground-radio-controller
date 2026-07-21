@@ -20,6 +20,7 @@ module ReferenceDeployment {
   module Default {
     constant QUEUE_SIZE = 10
     constant STACK_SIZE = 8 * 1024 # Must match prj.conf thread stack size
+    constant MAX_LORA_DATA_FRAME_SIZE = 248
   }
 
   # ----------------------------------------------------------------------
@@ -31,30 +32,68 @@ module ReferenceDeployment {
     stack size Default.STACK_SIZE \
     priority 3
 
-  instance rateGroup10Hz: Svc.ActiveRateGroup base id 0x10002000 \
-    queue size Default.QUEUE_SIZE \
-    stack size Default.STACK_SIZE \
-    priority 3
-
   instance rateGroup1Hz: Svc.ActiveRateGroup base id 0x10003000 \
     queue size Default.QUEUE_SIZE \
     stack size Default.STACK_SIZE \
     priority 4
 
-  instance fileManager: Svc.FileManager base id 0x10004000 \
+  instance uplinkComQueue: Svc.ComQueue base id 0x10004000 \
     queue size Default.QUEUE_SIZE \
     stack size Default.STACK_SIZE \
-    priority 5
+    priority 5 \
+    {
+        phase Fpp.ToCpp.Phases.configObjects """
+        Svc::ComQueue::QueueConfigurationTable configurationTable;
+        Fw::MallocAllocator mallocatorInstance;
+        """
 
-  instance fileUplink: Svc.FileUplink base id 0x10005000 \
+        phase Fpp.ToCpp.Phases.configComponents """
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[0].depth = 1;
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[0].priority = 0;
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[1].depth = 1;
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[1].priority = 1;
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[2].depth = 2;
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[2].priority = 2;
+        ReferenceDeployment::uplinkComQueue.configure(
+            ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable,
+            0,
+            ConfigObjects::ReferenceDeployment_uplinkComQueue::mallocatorInstance
+        );
+        """
+
+        phase Fpp.ToCpp.Phases.tearDownComponents """
+        ReferenceDeployment::uplinkComQueue.cleanup();
+        """
+    }
+
+  instance downlinkComQueue: Svc.ComQueue base id 0x10005000 \
     queue size Default.QUEUE_SIZE \
     stack size Default.STACK_SIZE \
-    priority 6
+    priority 5 \
+    {
+        phase Fpp.ToCpp.Phases.configObjects """
+        Svc::ComQueue::QueueConfigurationTable configurationTable;
+        Fw::MallocAllocator mallocatorInstance;
+        """
 
-  instance cmdSeq: Svc.CmdSequencer base id 0x10006000 \
-    queue size 20 \
-    stack size Default.STACK_SIZE \
-    priority 7
+        phase Fpp.ToCpp.Phases.configComponents """
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[0].depth = 1;
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[0].priority = 0;
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[1].depth = 1;
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[1].priority = 1;
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[2].depth = 2;
+        ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable.entries[2].priority = 2;
+        ReferenceDeployment::downlinkComQueue.configure(
+            ConfigObjects::ReferenceDeployment_downlinkComQueue::configurationTable,
+            1,
+            ConfigObjects::ReferenceDeployment_downlinkComQueue::mallocatorInstance
+        );
+        """
+
+        phase Fpp.ToCpp.Phases.tearDownComponents """
+        ReferenceDeployment::downlinkComQueue.cleanup();
+        """
+    }
 
 
   # ----------------------------------------------------------------------
@@ -100,6 +139,30 @@ module ReferenceDeployment {
         """
     }
 
+  instance dataFrameBufferManager: Svc.BufferManager base id 0x10016500 \
+    {
+        phase Fpp.ToCpp.Phases.configObjects """
+        Svc::BufferManager::BufferBins bins;
+        Fw::MallocAllocator mallocatorInstance;
+        """
+
+        phase Fpp.ToCpp.Phases.configComponents """
+        memset(&ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins, 0, sizeof(ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins));
+        ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].bufferSize = ReferenceDeployment::Default::MAX_LORA_DATA_FRAME_SIZE;
+        ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].numBuffers = 2;
+        ReferenceDeployment::dataFrameBufferManager.setup(
+            88, // randomly chosen mgr ID
+            0,
+            ConfigObjects::ReferenceDeployment_dataFrameBufferManager::mallocatorInstance,
+            ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins
+        );
+        """
+
+        phase Fpp.ToCpp.Phases.tearDownComponents """
+        ReferenceDeployment::dataFrameBufferManager.cleanup();
+        """
+    }
+
   # Radio instance: per-board selection (Phase 6 USP port).
   #   v5e  (CONFIG_LORA_BASICS_MODEM_DRIVERS=y): RadioInstances_Usp.fppi
   #     (Zephyr.UspRadio -- ACTIVE, has its own queue/stack/priority despite
@@ -110,14 +173,41 @@ module ReferenceDeployment {
   # CMakeLists.txt at configure time.
   include "RadioInstances.fppi"
 
+
   instance prmDb: Svc.PrmDb base id 0x10018000 \
     queue size Default.QUEUE_SIZE \
     stack size Default.STACK_SIZE \
     priority 5
 
-  instance byteComBridge: Components.ByteComBridge base id 0x10019000 \
-    queue size Default.QUEUE_SIZE \
-    stack size Default.STACK_SIZE \
-    priority 5
+  instance dataComStub: Svc.ComStub base id 0x10019000
+
+  instance dataFrameAccumulator: Svc.FrameAccumulator base id 0x1001A000 \
+    {
+        phase Fpp.ToCpp.Phases.configObjects """
+        Svc::FrameDetectors::CcsdsTcFrameDetector frameDetector;
+        Fw::MallocAllocator mallocatorInstance;
+        """
+
+        phase Fpp.ToCpp.Phases.configComponents """
+        ConfigObjects::ReferenceDeployment_dataFrameAccumulator::frameDetector.configure(
+            0,
+            true
+        );
+        ReferenceDeployment::dataFrameAccumulator.configure(
+            ConfigObjects::ReferenceDeployment_dataFrameAccumulator::frameDetector,
+            2,
+            ConfigObjects::ReferenceDeployment_dataFrameAccumulator::mallocatorInstance,
+            ReferenceDeployment::Default::MAX_LORA_DATA_FRAME_SIZE
+        );
+        """
+
+        phase Fpp.ToCpp.Phases.tearDownComponents """
+        ReferenceDeployment::dataFrameAccumulator.cleanup();
+        """
+    }
+
+  instance uplinkPassThrough: Svc.PassThroughRouter base id 0x1001B000
+
+  instance downlinkPassThrough: Svc.PassThroughRouter base id 0x1001C000
 
 }

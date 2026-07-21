@@ -17,6 +17,7 @@ FprimeZephyrReference/ReferenceDeployment/Top/RadioTopology.fppi
 FprimeZephyrReference/ReferenceDeployment/Top/RadioPacketsRadio.fppi
 
 # Misc
+/bin/
 /venv/
 /fprime-venv/
 /.idea/
@@ -28,4 +29,3 @@ build
 
 **/__pycache__/
 **/*.egg-info/
-

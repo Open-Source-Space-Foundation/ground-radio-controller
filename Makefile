@@ -1,7 +1,95 @@
 SHELL := /bin/bash
 .SHELLFLAGS = -euo pipefail -c
 
-include testconfig
+# Parallelize 2-board flash
+MAKEFLAGS := --jobs=2
+
+-include testconfig
+
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+include makelib/build-tools.mk
+include makelib/zephyr.mk
+
+export VIRTUAL_ENV ?= $(shell pwd)/fprime-venv
+
+.PHONY: clean
+clean: ## Remove all gitignored files except testconfig
+	git clean -dfX -e '!testconfig'
+
+##@ Development
+
+.PHONY: pre-commit-install
+pre-commit-install: $(UVX) ## Install pre-commit hooks
+	@$(UVX) pre-commit install > /dev/null
+
+.PHONY: fmt
+fmt: pre-commit-install ## Lint and format files
+	@$(UVX) pre-commit run --all-files
+
+.PHONY: submodules
+submodules: ## Initialize/update git submodules and apply carried lib/fprime patches (issue #432 class)
+	@git submodule update --init --recursive
+	@echo "Checking fprime ComAggregator bounded-timeout patch (issue #432)..."
+	@cd lib/fprime && \
+		if git apply --check ../../patches/fprime-com-aggregator-bounded-timeout.patch 2>/dev/null; then \
+			git apply ../../patches/fprime-com-aggregator-bounded-timeout.patch && \
+			echo "Applied ComAggregator bounded-timeout patch"; \
+		elif git apply --reverse --check ../../patches/fprime-com-aggregator-bounded-timeout.patch 2>/dev/null; then \
+			echo "Already applied: ComAggregator bounded-timeout patch"; \
+		else \
+			echo "Error: unable to apply ComAggregator patch. Run 'cd lib/fprime && git status' to check."; \
+			exit 1; \
+		fi
+	@echo "Checking fprime sched-tick drop patch (issue #432 class)..."
+	@cd lib/fprime && \
+		if git apply --check ../../patches/fprime-sched-tick-drop.patch 2>/dev/null; then \
+			git apply ../../patches/fprime-sched-tick-drop.patch && \
+			echo "Applied sched-tick drop patch"; \
+		elif git apply --reverse --check ../../patches/fprime-sched-tick-drop.patch 2>/dev/null; then \
+			echo "Already applied: sched-tick drop patch"; \
+		else \
+			echo "Error: unable to apply sched-tick drop patch (TlmPacketizer.fpp hunk may need hand-reconciling on a lib/fprime version bump -- see patches/README.md). Run 'cd lib/fprime && git status' to check."; \
+			exit 1; \
+		fi
+
+.PHONY: fprime-venv
+fprime-venv: $(UV) submodules ## Create a virtual environment
+	@$(UV) venv fprime-venv --python 3.10 --allow-existing
+	$(UV) pip install --prerelease=allow --requirement requirements.txt
+
+.PHONY: generate
+generate: submodules fprime-venv zephyr ## Generate FPrime project
+	@$(IN_VENV) fprime-util generate --force
+
+BUILD_DIR ?= $(shell pwd)/build-fprime-automatic-zephyr
+BUILD_NINJA ?= $(BUILD_DIR)/build.ninja
+$(BUILD_NINJA): | submodules fprime-venv zephyr
+	@$(IN_VENV) fprime-util generate --force
+
+.PHONY: build
+build: $(BUILD_NINJA) ## Build FPrime project
+	@$(IN_VENV) fprime-util build
+
+.PHONY: check-no-gds
+check-no-gds:
+	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then \
+		echo 'There are running GDS processes which will interfere with tests.' \
+			'Please kill with `pkill -f "[f]prime-gds|[f]prime_gds"`' 1>&2; \
+		exit 1; \
+	fi
+
+.PHONY: gds
+gds: check-no-gds fprime-venv
+	$(IN_VENV) fprime-gds \
+		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
+		--uart-skip-port-check
+
+.PHONY: menuconfig
+menuconfig: fprime-venv
+	$(IN_VENV) fprime-util build --target menuconfig
 
 BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
 BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
@@ -23,31 +111,59 @@ GDS_ARGS := \
 	--output-unframed-data unframed-data.log \
 	--gui none
 
-.PHONY: submodules
-submodules: ## Initialize/update git submodules and apply carried lib/fprime patches (issue #432 class)
-	@git submodule update --init --recursive
-	@echo "Applying fprime ComAggregator bounded-timeout patch (issue #432)..."
-	@cd lib/fprime && \
-		if git apply --check ../../patches/fprime-com-aggregator-bounded-timeout.patch 2>/dev/null; then \
-			git apply ../../patches/fprime-com-aggregator-bounded-timeout.patch && \
-			echo "Applied ComAggregator bounded-timeout patch"; \
-		elif git apply --reverse --check ../../patches/fprime-com-aggregator-bounded-timeout.patch 2>/dev/null; then \
-			echo "Already applied: ComAggregator bounded-timeout patch"; \
-		else \
-			echo "Error: unable to apply ComAggregator patch. Run 'cd lib/fprime && git status' to check."; \
-			exit 1; \
-		fi
-	@echo "Applying fprime sched-tick drop patch (issue #432 class)..."
-	@cd lib/fprime && \
-		if git apply --check ../../patches/fprime-sched-tick-drop.patch 2>/dev/null; then \
-			git apply ../../patches/fprime-sched-tick-drop.patch && \
-			echo "Applied sched-tick drop patch"; \
-		elif git apply --reverse --check ../../patches/fprime-sched-tick-drop.patch 2>/dev/null; then \
-			echo "Already applied: sched-tick drop patch"; \
-		else \
-			echo "Error: unable to apply sched-tick drop patch (TlmPacketizer.fpp hunk may need hand-reconciling on a lib/fprime version bump -- see patches/README.md). Run 'cd lib/fprime && git status' to check."; \
-			exit 1; \
-		fi
+ONE_BOARD_TEST_TARGETS := bft1 bft1-main test1 test1-main
+TWO_BOARD_TEST_TARGETS := bft2 bft2-main bft2-long test2 test2-main test2-long
+BFT_TARGETS := bft1 bft1-main bft2 bft2-main bft2-long
+TEST_TARGETS := test1 test1-main test2 test2-main test2-long
+
+$(ONE_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_ONE_BOARD_CFG_ARGS)
+$(TWO_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_TWO_BOARD_CFG_ARGS)
+bft1 test1: PYTEST_TESTS := test/one-board
+bft1-main test1-main: PYTEST_TESTS := test/one-board/main_test.py
+bft2 test2: PYTEST_TESTS := test/two-board/
+bft2-main test2-main: PYTEST_TESTS := test/two-board/main_test.py
+bft2-long test2-long: PYTEST_TESTS := test/two-board/long_test.py
+
+bft1 bft1-main: check-no-gds flash1
+bft2 bft2-main bft2-long: check-no-gds flash2
+
+.PHONY: $(BFT_TARGETS)
+$(BFT_TARGETS): fprime-venv
+	# Serial port symlinks seem to appear and disappear briefly after device is first
+	# flashed. Can't find a good event to block on to be sure they're stable.
+	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
+	# `sleep 1` and forget about it.
+
+	setsid env $(IN_VENV) fprime-gds $(GDS_ARGS) 2>&1 & \
+	GDS_PID=$$!; \
+	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT; \
+	sleep 1; \
+	$(IN_VENV) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+
+.PHONY: $(TEST_TARGETS)
+$(TEST_TARGETS): fprime-venv
+	$(IN_VENV) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+
+gdb1 attach1 flash1: ACTIVE_PROBE := $(PROBE_ONE)
+gdb2 attach2 flash2only: ACTIVE_PROBE := $(PROBE_TWO)
+
+.PHONY: flash1 flash2only
+flash1 flash2only: build
+	probe-rs download --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)" ./build-artifacts/zephyr.elf
+	probe-rs reset --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)"
+
+.PHONY: flash2
+flash2: flash1 flash2only
+
+.PHONY: gdb1 gdb2
+gdb1 gdb2:
+	probe-rs gdb --gdb gdb-multiarch --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
+
+.PHONY: attach1 attach2
+attach1 attach2:
+	probe-rs attach --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
+
+##@ Carried patches (USP radio port)
 
 USP_ZEPHYR_DIR ?= $(shell pwd)/lib/zephyr-workspace/modules/lib/usp_zephyr
 
@@ -73,7 +189,6 @@ usp-patches: ## Apply usp_zephyr patches (RF-switch GPIO + Zephyr 4.3 compat + w
 			echo "Cannot apply $$name -- check usp_zephyr revision"; exit 1; \
 		fi; \
 	done
-
 
 # USP_DIR: the Semtech smtc_rac_lib west module (radio planner lives here).
 USP_DIR ?= $(shell pwd)/lib/zephyr-workspace/modules/lib/usp
@@ -115,79 +230,4 @@ zephyr-patches: ## Apply Zephyr tree patches (CDC-ACM TX fixes; 0004-equivalent 
 		fi; \
 	done
 
-clean:
-	fprime-util purge -f
-
-build-fprime-automatic-zephyr:
-	fprime-util generate
-
-generate-force:
-	fprime-util generate -f
-
-build: build-fprime-automatic-zephyr
-	fprime-util build
-
-check-no-gds:
-	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then \
-		echo 'There are running GDS processes which will interfere with tests.' \
-			'Please kill with `pkill -f "[f]prime-gds|[f]prime_gds"`' 1>&2; \
-		exit 1; \
-	fi
-
-gds: check-no-gds
-	fprime-gds \
-		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
-		--uart-skip-port-check
-
-menuconfig:
-	fprime-util build --target menuconfig
-
-ONE_BOARD_TEST_TARGETS := bft1 bft1-main bft1-fs test1 test1-main test1-fs
-TWO_BOARD_TEST_TARGETS := bft2 bft2-main bft2-long test2 test2-main test2-long
-BFT_TARGETS := bft1 bft1-main bft1-fs bft2 bft2-main bft2-long
-TEST_TARGETS := test1 test1-main test1-fs test2 test2-main test2-long
-
-$(ONE_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_ONE_BOARD_CFG_ARGS)
-$(TWO_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_TWO_BOARD_CFG_ARGS)
-bft1 test1: PYTEST_TESTS := test/one-board
-bft1-main test1-main: PYTEST_TESTS := test/one-board/main_test.py
-bft1-fs test1-fs: PYTEST_TESTS := test/one-board/fs_test.py
-bft2 test2: PYTEST_TESTS := test/two-board/
-bft2-main test2-main: PYTEST_TESTS := test/two-board/main_test.py
-bft2-long test2-long: PYTEST_TESTS := test/two-board/long_test.py
-
-bft1 bft1-main bft1-fs: check-no-gds flash1
-bft2 bft2-main bft2-long: check-no-gds flash2
-
-$(BFT_TARGETS):
-	# Serial port symlinks seem to appear and disappear briefly after device is first
-	# flashed. Can't find a good event to block on to be sure they're stable.
-	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
-	# `sleep 1` and forget about it.
-
-	setsid fprime-gds $(GDS_ARGS) 2>&1 & \
-	GDS_PID=$$!; \
-	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT; \
-	sleep 1; \
-	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
-
-$(TEST_TARGETS):
-	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
-
-gdb1 attach1 flash1: ACTIVE_PROBE := $(PROBE_ONE)
-gdb2 attach2 flash2only: ACTIVE_PROBE := $(PROBE_TWO)
-
-flash1 flash2only: build
-	probe-rs download --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)" ./build-artifacts/zephyr.elf
-	probe-rs reset --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)"
-
-flash2: flash1 flash2only
-
-gdb1 gdb2:
-	probe-rs gdb --gdb gdb-multiarch --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
-
-attach1 attach2:
-	probe-rs attach --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
-
-
-.PHONY: clean generate-force build flash1 flash2 gds gdb1 gdb2 attach1 attach2 $(BFT_TARGETS) $(TEST_TARGETS) check-no-gds menuconfig
+export UV_BIN := $(UV)

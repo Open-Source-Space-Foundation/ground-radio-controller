@@ -30,7 +30,6 @@ manifest:
           - mbedtls    # Crypto library
           - tinycrypt  # Lightweight crypto library
           - mcuboot    # Bootloader support
-          - fatfs      # FatFS (file system) support
           - hal_st     # Required for certain sensors
           - segger     # SEGGER RTT support
 
@@ -85,10 +84,6 @@ manifest:
       revision: 96576b341ee19f1c3af6622256b0d4f3d408e1e3
       path: lib/zephyr-workspace/bootloader/mcuboot
 
-    - name: fatfs
-      revision: f4ead3bf4a6dab3a07d7b5f5315795c073db568d
-      path: lib/zephyr-workspace/modules/fs/fatfs
-
     - name: segger
       revision: 9f08435a79d41133d7046b7c59d1b25929eda450
       path: lib/zephyr-workspace/modules/debug/segger
@@ -114,3 +109,4 @@ manifest:
 
   self:
     path: .
+    west-commands: west-commands.yml

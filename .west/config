@@ -7,4 +7,3 @@ base = ./lib/zephyr-workspace/zephyr
 
 [build]
 board = ground_radio_controller/rp2350a/m33
-

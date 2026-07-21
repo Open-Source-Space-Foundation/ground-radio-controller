@@ -46,4 +46,9 @@ register_fprime_module(
         "${CMAKE_CURRENT_LIST_DIR}/ReferenceDeploymentTopology.cpp"
     DEPENDS
         Fw_Logger
+        Svc_BufferManager
+        Svc_ComQueue
+        Svc_ComStub
+        Svc_FrameAccumulator
+        Svc_PassThroughRouter
 )
