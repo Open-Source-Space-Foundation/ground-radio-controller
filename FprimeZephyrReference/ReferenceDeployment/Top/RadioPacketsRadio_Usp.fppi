@@ -1,0 +1,9 @@
+    uspRadio.BytesReceived
+    uspRadio.BytesSent
+    uspRadio.LastRssi
+    uspRadio.LastSnr
+    uspRadio.TxProfile
+    uspRadio.RxProfile
+    uspRadio.ProfileTableVersion
+    uspRadio.RxReverts
+    uspRadio.RxDropped

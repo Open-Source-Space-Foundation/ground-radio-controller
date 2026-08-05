@@ -12,3 +12,9 @@ CONFIG_SERIAL=y
 CONFIG_UART_CONSOLE=y
 CONFIG_UART_INTERRUPT_DRIVEN=y
 CONFIG_USE_DT_CODE_PARTITION=y
+
+# This board has an sx1276 devicetree node -- select the in-tree LoRa driver.
+# Moved here (Phase 6 USP port) from the shared prj.conf, which no longer
+# hard-sets CONFIG_LORA so v5e's CONFIG_LORA_BASICS_MODEM_DRIVERS (depends on
+# !LORA) can resolve.
+CONFIG_LORA=y

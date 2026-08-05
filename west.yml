@@ -90,6 +90,23 @@ manifest:
       groups:
         - debug
 
+    # USP radio stack (Semtech Unified Software Platform) — v5e USP-ported target only.
+    # Revisions copied verbatim from proves-core-reference's west.yml (same
+    # SX1262/E22-400M30S hardware, same regulatory constraint). Two Zephyr-4.3
+    # compat fixes + the RF-switch GPIO feature + the wakeup-busy race fix are
+    # carried as patches (see patches/000{1,2,3,6}-*.patch, applied by `make usp-patches`).
+    - name: usp_zephyr
+      url: https://github.com/Lora-net/usp_zephyr
+      revision: bfacd435f53935ebea1a0e95fb877f4ede119985
+      path: lib/zephyr-workspace/modules/lib/usp_zephyr
+
+    # USP core library (LBM + RAL) — pulled by usp_zephyr at runtime.
+    # Path mirrors the usp_zephyr west.yml convention (modules/lib/usp).
+    - name: usp
+      url: https://github.com/Lora-net/usp
+      revision: 351b2015350670eb4dfa3aec35eb04433e062654
+      path: lib/zephyr-workspace/modules/lib/usp
+
   self:
     path: .
     west-commands: west-commands.yml

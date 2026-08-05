@@ -8,6 +8,40 @@
 // Note: Uncomment when using Svc:TlmPacketizer
 // #include <FprimeZephyrReference/ReferenceDeployment/Top/ReferenceDeploymentPacketsAc.hpp>
 
+// Necessary project-specified types
+#include <Fw/Logger/Logger.hpp>
+
+// Phase 6 (USP port): per-board radio startup.
+//   v5e (CONFIG_LORA_BASICS_MODEM_DRIVERS=y): Zephyr::UspRadio + RalSessionImpl
+//   ground_radio_controller / v5 (legacy):    Zephyr::LoRa (uhf.start(), below)
+#ifdef CONFIG_LORA_BASICS_MODEM_DRIVERS
+#include "fprime-zephyr/Drv/UspRadio/RalSessionImpl.hpp"
+#include "fprime-zephyr/Drv/UspRadio/UspRadio.hpp"
+
+// Static RalSessionImpl instance (lives for the entire run).
+//
+// Frequency/TX power are runtime constructor args to RalSessionImpl -- they
+// no longer come from LoRaCfg.hpp once uhf becomes UspRadio (LoRaCfg.hpp
+// requires CONFIG_LORA=y, which is absent on the v5e-USP target; see
+// RalSessionImpl.cpp's own "NOTE: LoRaCfg.hpp is intentionally NOT included
+// here" comment). Hardcoded here to match GRC's own COMMITTED LoRaCfg.hpp
+// convention (project/config/LoRaCfg.hpp: DEFAULT_FREQ, TX_POWER) rather
+// than proves-core-reference's local bench override (437.4 MHz / +10 dBm) --
+// per Phase 6 scope doc: those flight values are a deliberate local
+// bench-safety cap, not the shared convention.
+//
+// TODO: LoRaConfig::TX_POWER (23 dBm) exceeds the SX1262 driver's advertised
+// +22 dBm max -- a pre-existing bug independent of this port (see
+// grc-v5e-board-port memory: "stock TX_POWER=23 exceeds +22dBm max"). Revisit
+// before flying v5e at full power; the bench working tree already carries an
+// uncommitted 13 dBm override for link-margin testing (see LoRaCfg.hpp diff,
+// deliberately not carried into this port -- bench-only, stays uncommitted).
+static Zephyr::RalSessionImpl s_ralSession(
+    437400000U,  // 437.4 MHz (matches GRC's committed LoRaConfig::DEFAULT_FREQ)
+    23           // +23 dBm (matches GRC's committed LoRaConfig::TX_POWER; see TODO above)
+);
+#endif  // CONFIG_LORA_BASICS_MODEM_DRIVERS
+
 // Allows easy reference to objects in FPP/autocoder required namespaces
 using namespace ReferenceDeployment;
 
@@ -43,6 +77,13 @@ void configureTopology() {
     // Rate groups require context arrays.
     rateGroup100Hz.configure(rateGroup100HzContext, FW_NUM_ARRAY_ELEMENTS(rateGroup100HzContext));
     rateGroup1Hz.configure(rateGroup1HzContext, FW_NUM_ARRAY_ELEMENTS(rateGroup1HzContext));
+    // Enable all TlmPacketizer groups and set default rates for the REALTIME section.
+    // loadParameters() runs after configureTopology() and may override these if saved params exist.
+    // Without this, groups remain SILENCED+DISABLED after a fresh flash (empty parameter DB).
+    for (FwChanIdType grp = 0; grp < static_cast<FwChanIdType>(Svc::NUM_CONFIGURABLE_TLMPACKETIZER_GROUPS); grp++) {
+        CdhCore::tlmSend.initGroupRate(
+            Svc::TelemetrySection::REALTIME, grp, Svc::RateLogic::EVERY_MAX, 0, 10);
+    }
 }
 
 // Public functions for use in main program are namespaced with deployment name ReferenceDeployment
@@ -70,7 +111,17 @@ void setupTopology(const TopologyState& state) {
 
     dataUartDriver.configure(state.dataUartDevice, state.dataUartBaudRate);
 
+    // Radio startup: per-board selection (Phase 6 USP port). Both paths start
+    // with TX ENABLED, matching this topology's existing (no startup-sequence
+    // gating) convention.
+#ifdef CONFIG_LORA_BASICS_MODEM_DRIVERS
+    uspRadio.configure(s_ralSession);
+    if (!uspRadio.startRadio(Zephyr::UspTransmitState::ENABLED)) {
+        Fw::Logger::log("[Topology] UspRadio startRadio() failed -- radio inactive\n");
+    }
+#else
     uhf.start(state.loraDevice, Zephyr::TransmitState::ENABLED);
+#endif
 }
 
 void startRateGroups() {

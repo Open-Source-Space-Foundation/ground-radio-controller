@@ -41,11 +41,11 @@ telemetry packets ReferenceDeploymentPackets {
     dataFrameBufferManager.TotalBuffs
   }
 
+  # Radio telemetry: per-board instance name (Phase 6 USP port).
+  # RadioPacketsRadio.fppi is a symlink to RadioPacketsRadio_{Lora,Usp}.fppi,
+  # created by CMakeLists.txt at configure time.
   packet UhfRadio id 5 group 2 {
-    uhf.BytesReceived
-    uhf.BytesSent
-    uhf.LastRssi
-    uhf.LastSnr
+    include "RadioPacketsRadio.fppi"
   }
 
   packet Version id 6 group 3 {

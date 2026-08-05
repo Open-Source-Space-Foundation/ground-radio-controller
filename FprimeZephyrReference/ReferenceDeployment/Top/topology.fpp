@@ -29,7 +29,8 @@ module ReferenceDeployment {
     instance dataUartDriver
     instance dataBufferManager
     instance dataFrameBufferManager
-    instance uhf
+    # uhf / uspRadio instance declared via RadioTopology.fppi below
+    # (per-board selection, Phase 6 USP port -- see instances.fpp).
     instance prmDb
     instance dataComStub
     instance dataFrameAccumulator
@@ -105,25 +106,20 @@ module ReferenceDeployment {
       uplinkComQueue.bufferReturnOut[0]      -> uplinkPassThrough.allPacketsReturnIn
       uplinkPassThrough.dataReturnOut        -> dataFrameAccumulator.dataReturnIn
 
-      # UHF connections
-      uhf.allocate                   -> dataBufferManager.bufferGetCallee
-      uhf.deallocate                 -> dataBufferManager.bufferSendIn
-      uplinkComQueue.dataOut         -> uhf.dataIn
-      uhf.dataReturnOut              -> uplinkComQueue.dataReturnIn
-      uhf.comStatusOut               -> uplinkComQueue.comStatusIn
-
-      # LoRa downlink -> queued UART byte stream
-      uhf.dataOut                              -> downlinkPassThrough.dataIn
-      downlinkPassThrough.allPacketsOut       -> downlinkComQueue.bufferQueueIn[0]
-      downlinkComQueue.bufferReturnOut[0]     -> downlinkPassThrough.allPacketsReturnIn
-      downlinkPassThrough.dataReturnOut       -> uhf.dataReturnIn
-
       downlinkComQueue.dataOut                -> dataComStub.dataIn
       dataComStub.dataReturnOut               -> downlinkComQueue.dataReturnIn
       dataComStub.comStatusOut                -> downlinkComQueue.comStatusIn
       dataComStub.drvSendOut                  -> dataUartDriver.$send
 
     }
+
+    # Radio (uhf / uspRadio) instance + connections: per-board selection
+    # (Phase 6 USP port). RadioTopology.fppi is a symlink to
+    # RadioTopology_{Lora,Usp}.fppi, created by CMakeLists.txt at configure
+    # time. The Usp variant also adds a RadioRateGroup connections block
+    # (UspRadio is active and needs a run port; uhf/Zephyr.LoRa is passive
+    # and does not).
+    include "RadioTopology.fppi"
 
     connections RateGroups {
       # timer to drive rate group

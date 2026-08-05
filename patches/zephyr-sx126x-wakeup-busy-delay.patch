@@ -1,0 +1,19 @@
+diff --git a/drivers/lora/loramac_node/sx126x.c b/drivers/lora/loramac_node/sx126x.c
+index 6221943f5..d4ac247b9 100644
+--- a/drivers/lora/loramac_node/sx126x.c
++++ b/drivers/lora/loramac_node/sx126x.c
+@@ -394,6 +394,14 @@ void SX126xWakeup(void)
+ 		return;
+ 	}
+ 
++	/* The chip takes up to ~340us (datasheet t_woff, warm start) after
++	 * the wake-up NSS edge before it is ready. Polling BUSY immediately
++	 * can sample it before the chip has asserted it, in which case the
++	 * next command is clocked into a device still starting up and is
++	 * silently ignored. Wait out the startup window before polling.
++	 */
++	k_busy_wait(500);
++
+ 	LOG_DBG("Waiting for device...");
+ 	SX126xWaitOnBusy();
+ 	LOG_DBG("Device ready");
