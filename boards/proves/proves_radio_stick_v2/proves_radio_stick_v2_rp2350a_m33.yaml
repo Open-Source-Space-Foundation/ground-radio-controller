@@ -1,0 +1,22 @@
+identifier: proves_radio_stick_v2/rp2350a/m33
+name: PROVES Radio Stick V2 (RP2350, Cortex-M33)
+type: mcu
+arch: arm
+flash: 16384
+ram: 520
+toolchain:
+  - zephyr
+  - gnuarmemb
+supported:
+  - adc
+  - clock
+  - counter
+  - dma
+  - gpio
+  - hwinfo
+  - i2c
+  - pwm
+  - spi
+  - uart
+  - usbd
+  - watchdog

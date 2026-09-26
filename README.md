@@ -138,6 +138,14 @@ It is also possible to only set `BOARD_ONE`, `PROBE_USB_ID`, and `PROBE_ONE`
 develop with only one board. But then you're unable to test key things like
 whether the radio link actually works.
 
+To flash the GRC software on a PROVES Radio Stick V2 (RP2350A with an
+SX1268-based E22-400M30S LoRa module), edit `settings.ini` and set
+`BOARD=proves_radio_stick_v2/rp2350a/m33`. The right LoRa driver is picked
+automatically from the board devicetree. This board also needs the SX126x
+wake-up fix from `patches/` applied to the Zephyr submodule (see
+`patches/README.md`). After changing boards, regenerate with
+`make generate` before building.
+
 Finally, if you want to flash the GRC software on a PROVES flight controller
 board rather than the radio controller board, you need to edit `settings.ini`
 and change:
