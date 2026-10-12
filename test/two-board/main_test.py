@@ -9,6 +9,8 @@ PASS_FREQUENCY_HZ = 437425000
 FAIL_FREQUENCY_HZ = 437435000
 MAX_LORA_DATA_FRAME_SIZE = 248
 TC_FRAME_OVERHEAD_SIZE = 7
+UPLINK_QUEUE_DEPTH = 16
+UPLINK_FRAME_BUFFERS = UPLINK_QUEUE_DEPTH + 1
 SCID = 0x44
 VCID = 1
 ALTERNATE_FRAME_IDS = ((0x45, 3), (0x46, 4))
@@ -49,6 +51,21 @@ def test_link_one_to_two_back_to_back_packets(data_port_one, data_port_two):
         assert data_port_two.read(len(second)) == second
 
 
+def test_link_delivers_gds_command_burst(
+    fprime_test_api, data_port_one, data_port_two
+):
+    # GDS writes a test fixture's commands back to back; every frame must go out
+    # without waiting for a later write.
+    try:
+        packets = [_tc_frame(f"burst-{i}".encode()) for i in range(3)]
+        for packet in packets:
+            data_port_one.write(packet)
+        for packet in packets:
+            assert data_port_two.read(len(packet)) == packet
+    finally:
+        _assert_no_warnings(fprime_test_api)
+
+
 def test_link_allows_different_scids_and_vcids(
     fprime_test_api, data_port_one, data_port_two
 ):
@@ -70,14 +87,14 @@ def test_link_recovers_after_frame_buffer_exhaustion(
         b"x" * (MAX_LORA_DATA_FRAME_SIZE - TC_FRAME_OVERHEAD_SIZE)
     )
 
-    data_port_one.write(max_size_packet * 3)
+    data_port_one.write(max_size_packet * (UPLINK_FRAME_BUFFERS + 1))
 
     assert fprime_test_api.await_event(
         "ReferenceDeployment.dataFrameAccumulator.NoBufferAvailable", timeout=2
     )
 
-    assert data_port_two.read(len(max_size_packet)) == max_size_packet
-    assert data_port_two.read(len(max_size_packet)) == max_size_packet
+    for _ in range(UPLINK_FRAME_BUFFERS):
+        assert data_port_two.read(len(max_size_packet)) == max_size_packet
 
     # Verify packet can come through after GRC has time to return the buffer
     data_port_one.write(max_size_packet)
