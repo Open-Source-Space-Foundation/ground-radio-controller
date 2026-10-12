@@ -1,17 +1,9 @@
-/*
- * PROVES Radio Stick V2 project-specific hardware (dual CDC ACM, SPI LoRa).
- * Same wiring as the Ground Radio Controller, but with an SX1268-based
- * E22-400M30S LoRa module (driven via the sx1262 compatible).
- */
-
 #include <zephyr/dt-bindings/lora/sx126x.h>
 
 &zephyr_udc0 {
-	/* Control port */
 	cdc_acm_uart0: cdc_acm_uart0 {
 		compatible = "zephyr,cdc-acm-uart";
 	};
-	/* Data port */
 	cdc_acm_uart1: cdc_acm_uart1 {
 		compatible = "zephyr,cdc-acm-uart";
 	};
@@ -29,8 +21,7 @@
 		};
 	};
 
-	/* I2C1 is on GPIO2/3 (J4), not the Pico 2 default GPIO6/7 (NRST, LED). */
-	i2c1_default: i2c1_default {
+	i2c1_j4: i2c1_j4 {
 		group1 {
 			pinmux = <I2C1_SDA_P2>, <I2C1_SCL_P3>;
 			input-enable;
@@ -39,7 +30,10 @@
 	};
 };
 
-/* W25Q128: 16 MB QSPI flash */
+&i2c1 {
+	pinctrl-0 = <&i2c1_j4>;
+};
+
 &flash0 {
 	reg = <0x10000000 DT_SIZE_M(16)>;
 };
@@ -51,6 +45,7 @@
 	pinctrl-names = "default";
 
 	lora0: sx1262@0 {
+		/* Zephyr has no semtech,sx1268 binding; the SX1262 binding drives the SX1268. */
 		compatible = "semtech,sx1262";
 		reg = <0>;
 		spi-max-frequency = <125000>;
@@ -67,7 +62,6 @@
 };
 
 &gpio0 {
-	/* RF_PWR_EN: TPS22918 load switch for the radio module, keep it on. */
 	rf_pwr_en {
 		gpio-hog;
 		gpios = <18 GPIO_ACTIVE_HIGH>;
@@ -75,7 +69,6 @@
 	};
 };
 
-/* Status LED D1 */
 &led0 {
 	gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
 };

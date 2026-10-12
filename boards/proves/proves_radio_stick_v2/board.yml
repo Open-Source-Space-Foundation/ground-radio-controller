@@ -1,6 +1,4 @@
 # SPDX-License-Identifier: Apache-2.0
-#
-# PROVES Radio Stick V2 — DTS uses upstream Pico 2 base + proves_radio_stick_v2_hardware.dtsi only.
 
 board:
   name: proves_radio_stick_v2

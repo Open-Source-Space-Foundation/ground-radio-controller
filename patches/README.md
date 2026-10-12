@@ -6,7 +6,7 @@ Local patches for submodules that cannot carry the change directly (the
 
 ## zephyr-sx126x-wakeup-busy-delay.patch
 
-**Required for SX126x-based boards (`proves_flight_control_board_v5e`).**
+**Required for SX126x-based boards (`proves_radio_stick_v2`, and `proves_flight_control_board_v5e` from #18).**
 
 The Zephyr SX126x driver polls the BUSY line immediately after the wake-up
 SPI transaction. The chip needs up to ~340us (datasheet warm-start time)
