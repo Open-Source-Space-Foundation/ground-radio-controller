@@ -51,9 +51,7 @@ def test_link_one_to_two_back_to_back_packets(data_port_one, data_port_two):
         assert data_port_two.read(len(second)) == second
 
 
-def test_link_delivers_gds_command_burst(
-    fprime_test_api, data_port_one, data_port_two
-):
+def test_link_delivers_gds_command_burst(fprime_test_api, data_port_one, data_port_two):
     # GDS writes a test fixture's commands back to back; every frame must go out
     # without waiting for a later write.
     try:
