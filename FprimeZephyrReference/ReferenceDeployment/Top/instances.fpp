@@ -21,6 +21,11 @@ module ReferenceDeployment {
     constant QUEUE_SIZE = 10
     constant STACK_SIZE = 8 * 1024 # Must match prj.conf thread stack size
     constant MAX_LORA_DATA_FRAME_SIZE = 248
+    # Uplink frames waiting for LoRa. Each one holds a dataFrameBufferManager buffer
+    # until it is sent, so the manager carries one more buffer than the queue to cover
+    # the frame in flight. FrameAccumulator strands a frame in its ring on
+    # NoBufferAvailable until the next host write, so buffers must never run out.
+    constant UPLINK_QUEUE_DEPTH = 16
   }
 
   # ----------------------------------------------------------------------
@@ -52,7 +57,7 @@ module ReferenceDeployment {
         ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[0].priority = 0;
         ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[1].depth = 1;
         ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[1].priority = 1;
-        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[2].depth = 2;
+        ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[2].depth = ReferenceDeployment::Default::UPLINK_QUEUE_DEPTH;
         ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable.entries[2].priority = 2;
         ReferenceDeployment::uplinkComQueue.configure(
             ConfigObjects::ReferenceDeployment_uplinkComQueue::configurationTable,
@@ -149,7 +154,7 @@ module ReferenceDeployment {
         phase Fpp.ToCpp.Phases.configComponents """
         memset(&ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins, 0, sizeof(ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins));
         ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].bufferSize = ReferenceDeployment::Default::MAX_LORA_DATA_FRAME_SIZE;
-        ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].numBuffers = 2;
+        ConfigObjects::ReferenceDeployment_dataFrameBufferManager::bins.bins[0].numBuffers = ReferenceDeployment::Default::UPLINK_QUEUE_DEPTH + 1;
         ReferenceDeployment::dataFrameBufferManager.setup(
             88, // randomly chosen mgr ID
             0,
