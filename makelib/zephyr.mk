@@ -53,5 +53,7 @@ clean-zephyr-sdk: ## Remove Zephyr SDK
 	rm -rf $(ZEPHYR_SDK_PATH) $(ZEPHYR_SDK_PACKAGE)
 
 .PHONY: zephyr-python-deps
+# Zephyr's requirements pull the newest setuptools, and setuptools 81+ drops the
+# pkg_resources module that fprime-util imports.
 zephyr-python-deps: $(ZEPHYR_WORKSPACE_DIRS) fprime-venv ## Install Zephyr Python dependencies
-	@$(WEST) uv pip --install -- --prerelease=allow --quiet
+	@$(WEST) uv pip --install -- --prerelease=allow --quiet "setuptools<81"
