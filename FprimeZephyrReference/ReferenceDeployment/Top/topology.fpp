@@ -37,6 +37,7 @@ module ReferenceDeployment {
     instance uplinkComQueue
     instance downlinkPassThrough
     instance downlinkComQueue
+    instance activityLeds
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
@@ -133,6 +134,7 @@ module ReferenceDeployment {
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup100Hz] -> rateGroup100Hz.CycleIn
       rateGroup100Hz.RateGroupMemberOut[0] -> controlUartDriver.schedIn
       rateGroup100Hz.RateGroupMemberOut[1] -> dataUartDriver.schedIn
+      rateGroup100Hz.RateGroupMemberOut[2] -> activityLeds.run
 
       # Slow rate (1Hz) rate group
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1Hz] -> rateGroup1Hz.CycleIn

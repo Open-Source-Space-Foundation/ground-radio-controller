@@ -35,6 +35,8 @@
 	aliases {
 		led0 = &led0;
 		led1 = &led1;
+		heartbeat-led = &led0;
+		activity-led = &led1;
 	};
 };
 

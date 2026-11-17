@@ -71,6 +71,8 @@ void setupTopology(const TopologyState& state) {
     dataUartDriver.configure(state.dataUartDevice, state.dataUartBaudRate);
 
     uhf.start(state.loraDevice, Zephyr::TransmitState::ENABLED);
+
+    activityLeds.start();
 }
 
 void startRateGroups() {
