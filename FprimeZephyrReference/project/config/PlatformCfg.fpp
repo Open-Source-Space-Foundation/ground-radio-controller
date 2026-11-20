@@ -43,3 +43,6 @@ constant FW_HANDLE_ALIGNMENT = 8
 
 @ Chunk size for working with files in the OSAL layer
 constant FW_FILE_CHUNK_SIZE = 512
+
+@ Maximum size of a handle for Os::CountingSemaphore
+constant FW_COUNTING_SEMAPHORE_HANDLE_MAX_SIZE = 48

@@ -148,6 +148,10 @@ extern "C" {
 #define FW_AMPCS_COMPATIBLE 0  //!< Whether or not JPL AMPCS ground system support is enabled.
 #endif
 
+// Hint to the compiler to always inline LinearBufferBase serialization &
+// deserialization methods
+#define FW_SERIALIZE_FORCE_INLINE_LBB
+
 // *** NOTE configuration checks are in Fw/Cfg/ConfigCheck.cpp in order to have
 // the type definitions in Fw/Types/BasicTypes available.
 #ifdef __cplusplus
