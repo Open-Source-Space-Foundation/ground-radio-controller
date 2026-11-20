@@ -156,6 +156,21 @@ wake-up fix from `patches/` applied to the Zephyr submodule (see
 `settings.ini`), then `nix run .#build`. After changing boards, regenerate
 before building.
 
+The PROVES Radio Stick V3 swaps the RP2350 for an STM32U575 and keeps the
+E22-400M30S. Select it with `BOARD=proves_radio_stick_v3 nix run .#generate`, then `nix run .#build`. It has no USB
+bootloader until firmware is on it, so flash the first image over SWD
+(J22 or the STDC14 header), for example with a Raspberry Pi Debug Probe:
+
+```
+openocd -f interface/cmsis-dap.cfg -c "adapter serial <probe S/N>" \
+    -f target/stm32u5x.cfg -c "program build-artifacts/zephyr.hex verify reset exit"
+```
+
+V3 status LEDs: D1 blinks once a second while the firmware runs. D2 is lit
+while the radio transmits and blinks briefly when the radio raises an
+interrupt while receiving. Boards opt in through the `heartbeat-led` and
+`activity-led` devicetree aliases; boards without them are unchanged.
+
 Finally, if you want to flash the GRC software on a PROVES flight controller
 board rather than the radio controller board, you need to edit `settings.ini`
 and change:

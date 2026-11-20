@@ -206,4 +206,6 @@ module ReferenceDeployment {
 
   instance downlinkPassThrough: Svc.PassThroughRouter base id 0x1001C000
 
+  instance activityLeds: Components.ActivityLeds base id 0x1001D000
+
 }

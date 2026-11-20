@@ -8,3 +8,7 @@ west
 -r lib/zephyr-workspace/zephyr/scripts/requirements-base.txt
 -r lib/zephyr-workspace/zephyr/scripts/requirements-build-test.txt
 -r lib/zephyr-workspace/zephyr/scripts/requirements-run-test.txt
+
+# Zephyr's requirements pull the newest setuptools, and setuptools 81+ drops the
+# pkg_resources module that fprime-util imports.
+setuptools<81

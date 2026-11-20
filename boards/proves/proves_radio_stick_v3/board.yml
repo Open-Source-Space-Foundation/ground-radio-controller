@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+
+board:
+  name: proves_radio_stick_v3
+  full_name: PROVES Radio Stick V3
+  vendor: PROVES
+  socs:
+    - name: stm32u575xx

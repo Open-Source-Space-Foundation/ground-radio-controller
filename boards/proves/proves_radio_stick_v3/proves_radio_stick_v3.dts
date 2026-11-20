@@ -1,0 +1,130 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+
+#include <st/u5/stm32u575Xi.dtsi>
+#include <st/u5/stm32u575vitx-pinctrl.dtsi>
+#include <zephyr/dt-bindings/lora/sx126x.h>
+
+/ {
+	model = "PROVES Radio Stick V3";
+	compatible = "proves,radio-stick-v3";
+
+	chosen {
+		zephyr,console = &cdc_acm_uart0;
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led0: led_0 {
+			gpios = <&gpiob 0 GPIO_ACTIVE_HIGH>;
+			label = "D1 Firmware_Active";
+		};
+
+		led1: led_1 {
+			gpios = <&gpioc 6 GPIO_ACTIVE_HIGH>;
+			label = "D2 User";
+		};
+	};
+
+	aliases {
+		led0 = &led0;
+		led1 = &led1;
+		heartbeat-led = &led0;
+		activity-led = &led1;
+	};
+};
+
+&clk_hse {
+	clock-frequency = <DT_FREQ_M(16)>;
+	status = "okay";
+};
+
+&clk_lse {
+	status = "okay";
+};
+
+/*
+ * VCO 288 MHz: R = 144 MHz SYSCLK, Q = 48 MHz USB (no CRS for HSI48 in Zephyr).
+ * 160 MHz with a 48 MHz Q output has no valid divider set (R must be 1 or even).
+ */
+&pll1 {
+	div-m = <1>;
+	mul-n = <18>;
+	div-q = <6>;
+	div-r = <2>;
+	clocks = <&clk_hse>;
+	status = "okay";
+};
+
+&rcc {
+	clocks = <&pll1>;
+	clock-frequency = <DT_FREQ_M(144)>;
+	ahb-prescaler = <1>;
+	apb1-prescaler = <1>;
+	apb2-prescaler = <1>;
+	apb3-prescaler = <1>;
+};
+
+&usart1 {
+	pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
+	pinctrl-names = "default";
+	current-speed = <115200>;
+	status = "okay";
+};
+
+zephyr_udc0: &usbotg_fs {
+	pinctrl-0 = <&usb_otg_fs_dm_pa11 &usb_otg_fs_dp_pa12>;
+	pinctrl-names = "default";
+	clocks = <&rcc STM32_CLOCK(AHB2, 14)>,
+		 <&rcc STM32_SRC_PLL1_Q ICKLK_SEL(2)>;
+	status = "okay";
+
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+
+	cdc_acm_uart1: cdc_acm_uart1 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+&spi1 {
+	pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
+	pinctrl-names = "default";
+	cs-gpios = <&gpioc 4 GPIO_ACTIVE_LOW>;
+	status = "okay";
+
+	lora0: sx1262@0 {
+		/* Zephyr has no semtech,sx1268 binding; the SX1262 binding drives the SX1268. */
+		compatible = "semtech,sx1262";
+		reg = <0>;
+		spi-max-frequency = <1000000>;
+		reset-gpios = <&gpioe 3 GPIO_ACTIVE_LOW>;
+		busy-gpios = <&gpiob 9 GPIO_ACTIVE_HIGH>;
+		dio1-gpios = <&gpiob 8 GPIO_ACTIVE_HIGH>;
+		tx-enable-gpios = <&gpioa 2 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+		rx-enable-gpios = <&gpioa 3 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+		dio3-tcxo-voltage = <SX126X_DIO3_TCXO_1V8>;
+		tcxo-power-startup-delay-ms = <10>;
+		rx-boosted;
+		label = "E22-400M30S";
+	};
+};
+
+&gpioe {
+	rf_pwr_en {
+		gpio-hog;
+		gpios = <2 GPIO_ACTIVE_HIGH>;
+		output-high;
+	};
+};
+
+&rng {
+	status = "okay";
+};
