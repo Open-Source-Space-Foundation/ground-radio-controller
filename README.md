@@ -54,48 +54,56 @@ frequency of the broadcast.
 
 ### Software Setup
 
-Install [Zehpyr dependencies:](https://docs.zephyrproject.org/latest/develop/getting_started/index.html#install-dependencies)
+The only prerequisites are [Nix](https://nixos.org/download/) with flakes
+enabled (`experimental-features = nix-command flakes`) and, optionally,
+[direnv](https://direnv.net/). The flake provides every tool: the ARM
+toolchain, CMake, Ninja, Python 3.14, uv, probe-rs, picotool, and the linters.
+Nothing is downloaded outside Nix and the Python venv.
 
-```
-sudo apt install --no-install-recommends git cmake ninja-build gperf \
-  ccache dfu-util device-tree-compiler wget python3-dev python3-venv python3-tk \
-  xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
-```
+Enter the environment with `direnv allow` (uses `.envrc`) or `nix develop`.
+The first entry creates `fprime-venv` and installs `requirements.txt`; it is
+re-synced whenever the requirements change. The shell also installs the
+pre-commit git hook.
 
-Install probe-rs:
+Then, once per clone, fetch the submodules and set up the Zephyr workspace:
 
-```
-cargo install probe-rs-tools --locked --version 0.30.0
-```
-
-`~/.cargo/bin/` should be in your path so that `probe-rs` can be found. We fix
-version to be 0.30.0 to work around probe-rs
-[#3805](https://github.com/probe-rs/probe-rs/issues/3805).
-
-Set up virtual environment:
-
-```
-mkdir venv
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+```sh
+nix run .#setup
 ```
 
-Set up formatting git hooks:
+Build with:
 
-```
-git config core.hooksPath githooks
-```
-
-At this point you should be able to build:
-
-```
-make build
+```sh
+nix run .#generate
+nix run .#build
 ```
 
-And you can flash a board by plugging it in via USB, holding BOOTSEL, pressing
-RST, releasing BOOTSEL, then copying `build-artifacts/zephyr.uf2` into the
-`RP2350` USB storage device that should have just appeared on your PC.
+To flash a board, plug it in via USB, hold BOOTSEL, press RST, release
+BOOTSEL, then run:
+
+```sh
+nix run .#flash
+```
+
+(Or copy `build-artifacts/zephyr.uf2` onto the `RP2350` USB storage device
+that appeared on your PC.)
+
+For the Make helpers described below, try:
+
+```sh
+make help
+```
+
+### Software Flashing
+
+To flash the software onto the board either drag the uf2 to the board as described above or...
+
+`probe-rs` is provided by the Nix flake. Note the repo previously pinned
+version 0.30.0 to work around probe-rs
+[#3805](https://github.com/probe-rs/probe-rs/issues/3805); the flake uses
+whatever version nixpkgs ships, so check that issue if flashing misbehaves.
+
+Now you may use the flash commands defined in the `Makefile`.
 
 ### Hardware Setup & Configuration Files
 
@@ -138,6 +146,31 @@ It is also possible to only set `BOARD_ONE`, `PROBE_USB_ID`, and `PROBE_ONE`
 develop with only one board. But then you're unable to test key things like
 whether the radio link actually works.
 
+To flash the GRC software on a PROVES Radio Stick V2 (RP2350A with an
+SX1268-based E22-400M30S LoRa module), edit `settings.ini` and set
+`BOARD=proves_radio_stick_v2/rp2350a/m33`. The right LoRa driver is picked
+automatically from the board devicetree. This board also needs the SX126x
+wake-up fix from `patches/` applied to the Zephyr submodule (see
+`patches/README.md`; `nix run .#setup` applies it). Select the board with
+`BOARD=proves_radio_stick_v2/rp2350a/m33 nix run .#generate` (this overrides
+`settings.ini`), then `nix run .#build`. After changing boards, regenerate
+before building.
+
+The PROVES Radio Stick V3 swaps the RP2350 for an STM32U575 and keeps the
+E22-400M30S. Select it with `BOARD=proves_radio_stick_v3 nix run .#generate`, then `nix run .#build`. It has no USB
+bootloader until firmware is on it, so flash the first image over SWD
+(J22 or the STDC14 header), for example with a Raspberry Pi Debug Probe:
+
+```
+openocd -f interface/cmsis-dap.cfg -c "adapter serial <probe S/N>" \
+    -f target/stm32u5x.cfg -c "program build-artifacts/zephyr.hex verify reset exit"
+```
+
+V3 status LEDs: D1 blinks once a second while the firmware runs. D2 is lit
+while the radio transmits and blinks briefly when the radio raises an
+interrupt while receiving. Boards opt in through the `heartbeat-led` and
+`activity-led` devicetree aliases; boards without them are unchanged.
+
 Finally, if you want to flash the GRC software on a PROVES flight controller
 board rather than the radio controller board, you need to edit `settings.ini`
 and change:
@@ -150,10 +183,11 @@ and change:
 Use `proves_flight_control_board_v5e/rp2350a/m33` for the v5e board, which
 carries an SX1262-based E22-400M30S LoRa module instead of the v5's SX1276.
 The right LoRa driver is picked automatically from the board devicetree.
-After changing boards, regenerate with `make generate-force` before building.
+Select it with `BOARD=proves_flight_control_board_v5e/rp2350a/m33 nix run .#generate`,
+then `nix run .#build`. After changing boards, regenerate before building.
 
 The v5e additionally needs the SX126x wake-up fix from `patches/` applied to
-the Zephyr submodule (see `patches/README.md`); without it, `SET_FREQ`
+the Zephyr submodule (see `patches/README.md`; `nix run .#setup` applies it); without it, `SET_FREQ`
 intermittently fails to retune the radio in release builds.
 
 ### Workflow
@@ -167,9 +201,6 @@ board(s), then run the tests. They are:
 - `bft2` for all the two-board-tests
 - `bft2-main` for the main two-board-tests
 - `bft2-long` for the long-running two-board tests
-
-You can run the two-board BFT targets with `-j2` to flash two boards in
-parallel.
 
 There are targets `test1`, `test2`, `test2-main`, `test2-long` that do the
 same as their BFT counterparts, but they skip the build & flash phases. They
@@ -241,4 +272,3 @@ If you're submitting a larger PR, try to follow good practices. I like
 guidelines](https://contributing.godotengine.org/en/latest/pull_requests/pull_request_guidelines.html),
 especially the sections, "Contribute one change at a time" and "Explain your
 contributions".
-

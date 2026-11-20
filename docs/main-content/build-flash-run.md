@@ -4,22 +4,31 @@ This guide assumes that the initial setup steps have been completed, and will wa
 
 ## Building the Deployment
 > [!Note]
-> This step can be skipped if the setup.sh script is run. However, any changes made will require you to run `fprime-util build` and may require `fprime-util generate`
+> Run these from inside the Nix environment (`nix develop` or direnv). Any changes made will require you to rebuild and may require regenerating.
 
 1. In order to build the ReferenceDeployment application, or any other F´ application, we first need to generate a build directory. This can be done with the following commands:
 
 ```sh
-# In fprime-zephyr-reference (fprime-venv)
-fprime-util generate
+# In fprime-zephyr-reference
+nix run .#generate
+# Pick a board without editing settings.ini:
+BOARD=proves_radio_stick_v2/rp2350a/m33 nix run .#generate
 ```
 
 2. The next step is to build the ReferenceDeployment application's code.
 ```sh
-# In fprime-zephyr-reference (fprime-venv)
-fprime-util build
+# In fprime-zephyr-reference
+nix run .#build
 ```
 
 ## Flashing the Board
+
+For RP2350 boards (hold BOOTSEL while plugging in, or press RST while holding BOOTSEL), flash with:
+
+```sh
+# In fprime-zephyr-reference
+nix run .#flash
+```
 
 Different boards will likely require different steps to flash software onto the board. Instructions for tested boards are provided [here][board-list] The following is an example of flashing the deployment onto a stm32 board.
 
@@ -29,12 +38,12 @@ Different boards will likely require different steps to flash software onto the 
 # Linux/Windows WSL
 sh ~/.arduino15/packages/STMicroelectronics/tools/STM32Tools/2.3.0/stm32CubeProg.sh -i swd -f build-fprime-automatic-zephyr/zephyr/zephyr.hex -c /dev/ttyACM0
 
-# MacOS
-sh ~/Library/Arduino15/packages/STMicroelectronics/tools/STM32Tools/2.3.0/stm32CubeProg.sh -i swd -f build-fprime-automatic-zephyr/zephyr/zephyr.hex -c /dev/cu.usbmodem142203 
+# macOS
+sh ~/Library/Arduino15/packages/STMicroelectronics/tools/STM32Tools/2.3.0/stm32CubeProg.sh -i swd -f build-fprime-automatic-zephyr/zephyr/zephyr.hex -c /dev/cu.usbmodem142203
 ```
 
 > [!Note]
-> Change `/dev/ttyACM0` (`/dev/cu.usbmodem141203` for MacOS) to the correct serial device connected to the device. To find the correct serial port, refer to thie documentation [here](https://github.com/ngcp-project/gcs-infrastructure/blob/d34eeba4eb547a5174d291a64b36eaa8c11369c8/Communication/XBee/docs/serial_port.md)
+> Change `/dev/ttyACM0` (`/dev/cu.usbmodem141203` for macOS) to the correct serial device connected to the device. To find the correct serial port, refer to the documentation [here](https://github.com/ngcp-project/gcs-infrastructure/blob/d34eeba4eb547a5174d291a64b36eaa8c11369c8/Communication/XBee/docs/serial_port.md)
 
 > [!Note]
 > Two USB connections may be required depending on the board configuration. USB PWR is used to power and flash the development board and access the debug terminal, USER USB is used to connect to the F Prime GDS
@@ -48,7 +57,7 @@ The following command will spin up the F' GDS as well as run the application bin
 fprime-gds -n --dictionary ./build-artifacts/zephyr/fprime-zephyr-deployment/dict/ReferenceDeploymentTopologyDictionary.json --communication-selection uart --uart-baud 115200 --output-unframed-data
 
 # Or
-fprime-gds -n --dictionary ./build-artifacts/zephyr/fprime-zephyr-deployment/dict/ReferenceDeploymentTopologyDictionary.json --communication-selection uart --uart-device /dev/cu.usbmodem142101 --uart-baud 115200 
+fprime-gds -n --dictionary ./build-artifacts/zephyr/fprime-zephyr-deployment/dict/ReferenceDeploymentTopologyDictionary.json --communication-selection uart --uart-device /dev/cu.usbmodem142101 --uart-baud 115200
 
 ```
 

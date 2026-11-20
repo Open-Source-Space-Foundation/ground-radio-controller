@@ -31,7 +31,7 @@ fprime-gds
 
 - **CdhCore**: Command & Data Handling
   - Command dispatching and event management
-  - Event logging and telemetry collection  
+  - Event logging and telemetry collection
   - Health monitoring system
   - Fatal error handling
 
@@ -39,13 +39,3 @@ fprime-gds
   - CCSDS protocol implementation
   - Uplink/downlink data handling
   - Frame processing and routing
-
-- **FileHandling**: File Transfer & Command Sequencing
-  - File upload and download services
-  - Parameter database management
-  - File system operations
-
-- **DataProducts**: Data Product Management
-  - Data product cataloging
-  - Storage and retrieval capabilities
-  - Product metadata management

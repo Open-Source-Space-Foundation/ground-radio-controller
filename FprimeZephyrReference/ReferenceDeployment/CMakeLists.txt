@@ -1,8 +1,8 @@
 #####
 # 'ReferenceDeployment' Deployment:
 #
-# This registers the 'ReferenceDeployment' deployment to the build system. 
-# Custom components that have not been added at the project-level should be added to 
+# This registers the 'ReferenceDeployment' deployment to the build system.
+# Custom components that have not been added at the project-level should be added to
 # the list below.
 #
 #####
@@ -19,5 +19,7 @@ if (FPRIME_PLATFORM STREQUAL "Zephyr")
             "${CMAKE_CURRENT_LIST_DIR}/Main.cpp"
         DEPENDS
             ${FPRIME_CURRENT_MODULE}_Top
+        CHOOSES_IMPLEMENTATIONS
+            Os_File_Stub
     )
 endif()

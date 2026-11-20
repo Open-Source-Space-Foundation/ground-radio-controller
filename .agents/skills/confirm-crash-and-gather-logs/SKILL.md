@@ -44,4 +44,3 @@ Follow the below procedure exactly.
 
 Continue what you were doing, now with the knowledge of the cause of the
 crash.
-

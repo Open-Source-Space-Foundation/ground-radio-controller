@@ -19,11 +19,6 @@ config FPRIME
 	help
 	  This option enables support for the F' library
 
-config APP_WIPE_STORAGE
-	bool "Option to clear the flash area before mounting"
-	help
-	  Use this to force an existing file system to be created.
-
 config LOCAL_USB_PRODUCT_STRING
 	string "Local USB Product String"
 	default "F Prime UART console"

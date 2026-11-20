@@ -1,0 +1,80 @@
+#include <zephyr/dt-bindings/lora/sx126x.h>
+
+&zephyr_udc0 {
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+	cdc_acm_uart1: cdc_acm_uart1 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+&pinctrl {
+	spi1_default: spi1_default {
+		group1 {
+			pinmux = <SPI1_SCK_P10>, <SPI1_TX_P11>;
+		};
+
+		group2 {
+			pinmux = <SPI1_RX_P8>;
+			input-enable;
+		};
+	};
+
+	i2c1_j4: i2c1_j4 {
+		group1 {
+			pinmux = <I2C1_SDA_P2>, <I2C1_SCL_P3>;
+			input-enable;
+			input-schmitt-enable;
+		};
+	};
+};
+
+&i2c1 {
+	pinctrl-0 = <&i2c1_j4>;
+};
+
+&flash0 {
+	reg = <0x10000000 DT_SIZE_M(16)>;
+};
+
+&spi1 {
+	status = "okay";
+	cs-gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
+	pinctrl-0 = <&spi1_default>;
+	pinctrl-names = "default";
+
+	lora0: sx1262@0 {
+		/* Zephyr has no semtech,sx1268 binding; the SX1262 binding drives the SX1268. */
+		compatible = "semtech,sx1262";
+		reg = <0>;
+		spi-max-frequency = <125000>;
+		reset-gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
+		busy-gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+		dio1-gpios = <&gpio0 15 GPIO_ACTIVE_HIGH>;
+		tx-enable-gpios = <&gpio0 21 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+		rx-enable-gpios = <&gpio0 20 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+		dio3-tcxo-voltage = <SX126X_DIO3_TCXO_1V8>;
+		tcxo-power-startup-delay-ms = <10>;
+		rx-boosted;
+		label = "E22-400M30S";
+	};
+};
+
+&gpio0 {
+	rf_pwr_en {
+		gpio-hog;
+		gpios = <18 GPIO_ACTIVE_HIGH>;
+		output-high;
+	};
+};
+
+&led0 {
+	gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+};
+
+/ {
+	chosen {
+		zephyr,console = &cdc_acm_uart0;
+	};
+};

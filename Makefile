@@ -1,7 +1,52 @@
 SHELL := /bin/bash
 .SHELLFLAGS = -euo pipefail -c
 
-include testconfig
+# Parallelize 2-board flash
+MAKEFLAGS := --jobs=2
+
+-include testconfig
+
+ifndef GRC_NIX_SHELL
+$(error Not in the Nix shell. Use direnv, `nix develop`, or `nix develop -c make ...`)
+endif
+
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+.PHONY: clean
+clean: ## Remove all gitignored files except testconfig
+	git clean -dfX -e '!testconfig'
+
+##@ Development
+
+.PHONY: fmt
+fmt: ## Lint and format files
+	@pre-commit run --all-files
+
+# Tooling lives in the flake: `nix run .#setup`, `.#generate`, `.#build`, `.#flash`.
+# One shared prerequisite so parallel flash targets build only once.
+.PHONY: build
+build:
+	nix run .#build
+
+.PHONY: check-no-gds
+check-no-gds:
+	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then \
+		echo 'There are running GDS processes which will interfere with tests.' \
+			'Please kill with `pkill -f "[f]prime-gds|[f]prime_gds"`' 1>&2; \
+		exit 1; \
+	fi
+
+.PHONY: gds
+gds: check-no-gds
+	fprime-gds \
+		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
+		--uart-skip-port-check
+
+.PHONY: menuconfig
+menuconfig:
+	fprime-util build --target menuconfig
 
 BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
 BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
@@ -23,50 +68,23 @@ GDS_ARGS := \
 	--output-unframed-data unframed-data.log \
 	--gui none
 
-clean:
-	fprime-util purge -f
-
-build-fprime-automatic-zephyr:
-	fprime-util generate
-
-generate-force:
-	fprime-util generate -f
-
-build: build-fprime-automatic-zephyr
-	fprime-util build
-
-check-no-gds:
-	@if pgrep -f '[f]prime-gds|[f]prime_gds' 2>/dev/null 1>&2; then \
-		echo 'There are running GDS processes which will interfere with tests.' \
-			'Please kill with `pkill -f "[f]prime-gds|[f]prime_gds"`' 1>&2; \
-		exit 1; \
-	fi
-
-gds: check-no-gds
-	fprime-gds \
-		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
-		--uart-skip-port-check
-
-menuconfig:
-	fprime-util build --target menuconfig
-
-ONE_BOARD_TEST_TARGETS := bft1 bft1-main bft1-fs test1 test1-main test1-fs
+ONE_BOARD_TEST_TARGETS := bft1 bft1-main test1 test1-main
 TWO_BOARD_TEST_TARGETS := bft2 bft2-main bft2-long test2 test2-main test2-long
-BFT_TARGETS := bft1 bft1-main bft1-fs bft2 bft2-main bft2-long
-TEST_TARGETS := test1 test1-main test1-fs test2 test2-main test2-long
+BFT_TARGETS := bft1 bft1-main bft2 bft2-main bft2-long
+TEST_TARGETS := test1 test1-main test2 test2-main test2-long
 
 $(ONE_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_ONE_BOARD_CFG_ARGS)
 $(TWO_BOARD_TEST_TARGETS): PYTEST_CFG_ARGS := $(PYTEST_TWO_BOARD_CFG_ARGS)
 bft1 test1: PYTEST_TESTS := test/one-board
 bft1-main test1-main: PYTEST_TESTS := test/one-board/main_test.py
-bft1-fs test1-fs: PYTEST_TESTS := test/one-board/fs_test.py
 bft2 test2: PYTEST_TESTS := test/two-board/
 bft2-main test2-main: PYTEST_TESTS := test/two-board/main_test.py
 bft2-long test2-long: PYTEST_TESTS := test/two-board/long_test.py
 
-bft1 bft1-main bft1-fs: check-no-gds flash1
+bft1 bft1-main: check-no-gds flash1
 bft2 bft2-main bft2-long: check-no-gds flash2
 
+.PHONY: $(BFT_TARGETS)
 $(BFT_TARGETS):
 	# Serial port symlinks seem to appear and disappear briefly after device is first
 	# flashed. Can't find a good event to block on to be sure they're stable.
@@ -79,23 +97,25 @@ $(BFT_TARGETS):
 	sleep 1; \
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
+.PHONY: $(TEST_TARGETS)
 $(TEST_TARGETS):
 	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
 gdb1 attach1 flash1: ACTIVE_PROBE := $(PROBE_ONE)
 gdb2 attach2 flash2only: ACTIVE_PROBE := $(PROBE_TWO)
 
+.PHONY: flash1 flash2only
 flash1 flash2only: build
 	probe-rs download --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)" ./build-artifacts/zephyr.elf
 	probe-rs reset --probe "$(PROBE_USB_ID):$(ACTIVE_PROBE)"
 
+.PHONY: flash2
 flash2: flash1 flash2only
 
+.PHONY: gdb1 gdb2
 gdb1 gdb2:
 	probe-rs gdb --gdb gdb-multiarch --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
 
+.PHONY: attach1 attach2
 attach1 attach2:
 	probe-rs attach --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
-
-
-.PHONY: clean generate-force build flash1 flash2 gds gdb1 gdb2 attach1 attach2 $(BFT_TARGETS) $(TEST_TARGETS) check-no-gds menuconfig

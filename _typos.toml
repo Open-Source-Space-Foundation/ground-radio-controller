@@ -1,0 +1,14 @@
+# Terms typos would flag that are not mistakes.
+[default]
+# Hex ids and hashes are not words.
+extend-ignore-re = ["[0-9a-f]{16,}"]
+
+[files]
+# Lock files hold hashes, and the submodules are upstream code.
+extend-exclude = ["uv.lock", "flake.lock", "lib/"]
+
+[default.extend-words]
+# FPP packet name; renaming it changes the telemetry interface.
+Auxillary = "Auxillary"
+# STM32 internal oscillator (HSI, HSI48) in the V3 board devicetree.
+HSI = "HSI"

@@ -5,7 +5,7 @@ index 6221943f5..d4ac247b9 100644
 @@ -394,6 +394,14 @@ void SX126xWakeup(void)
  		return;
  	}
- 
+
 +	/* The chip takes up to ~340us (datasheet t_woff, warm start) after
 +	 * the wake-up NSS edge before it is ready. Polling BUSY immediately
 +	 * can sample it before the chip has asserted it, in which case the

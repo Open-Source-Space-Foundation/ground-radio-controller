@@ -1,5 +1,5 @@
 /*
- * Ground Radio Controller — project-specific hardware (dual CDC ACM, SPI LoRa, fstab, ramdisk).
+ * Ground Radio Controller project-specific hardware (dual CDC ACM, SPI LoRa).
  */
 
 &zephyr_udc0 {
@@ -47,22 +47,5 @@
 / {
 	chosen {
 		zephyr,console = &cdc_acm_uart0;
-	};
-
-	fstab {
-		compatible = "zephyr,fstab";
-		ffs1: ffs1 {
-			compatible = "zephyr,fstab,fatfs";
-			disk-access;
-			automount;
-			mount-point = "/";
-		};
-	};
-
-	ramdisk0 {
-		compatible = "zephyr,ram-disk";
-		disk-name = "RAM";
-		sector-size = <512>;
-		sector-count = <128>;
 	};
 };

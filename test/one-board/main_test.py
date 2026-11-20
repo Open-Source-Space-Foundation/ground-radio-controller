@@ -2,90 +2,65 @@
 These tests require that one board be connected to the PC.
 """
 
-from pathlib import Path
-import subprocess
+import time
 
-import pytest
-
-
-ROOT = Path(__file__).resolve().parents[2]
-DICTIONARY = (
-    ROOT
-    / "build-artifacts"
-    / "zephyr"
-    / "fprime-zephyr-deployment"
-    / "dict"
-    / "ReferenceDeploymentTopologyDictionary.json"
+from fprime_gds.common.communication.ccsds.space_data_link import (
+    SpaceDataLinkFramerDeframer,
 )
-SEQUENCE_SOURCE = ROOT / "test" / "assets" / "cs_noop.seq"
+
+MAX_LORA_DATA_FRAME_SIZE = 248
+TC_FRAME_OVERHEAD_SIZE = 7
 
 
-@pytest.fixture(scope="module")
-def compiled_sequence_bin(tmp_path_factory):
-    output_dir = tmp_path_factory.mktemp("seq")
-    output_bin = output_dir / "cs_noop.bin"
-
-    if not DICTIONARY.exists():
-        pytest.fail(f"Missing dictionary for sequence compilation: {DICTIONARY}")
-
-    result = subprocess.run(
-        [
-            "fprime-seqgen",
-            "--dictionary",
-            str(DICTIONARY),
-            str(SEQUENCE_SOURCE),
-            str(output_bin),
-        ],
-        capture_output=True,
-        text=True,
+def _tc_frame(scid: int, vcid: int, payload: bytes = b"x") -> bytes:
+    return SpaceDataLinkFramerDeframer(scid=scid, vcid=vcid, frame_size=1024).frame(
+        payload
     )
-    if result.returncode != 0:
-        pytest.fail(f"fprime-seqgen failed:\n{result.stderr}")
-
-    return output_bin
 
 
-def test_send_noop(fprime_test_api):
-    fprime_test_api.send_and_assert_command("CdhCore.cmdDisp.CMD_NO_OP", timeout=2)
-    assert fprime_test_api.get_command_test_history().size() == 1
+def _assert_no_warnings(fprime_test_api):
+    warnings = [
+        event.get_str(verbose=True)
+        for event in fprime_test_api.get_event_test_history().retrieve()
+        if "WARNING" in str(event.get_severity())
+    ]
+    assert not warnings, "Unexpected warning events:\n" + "\n".join(warnings)
 
 
-def test_set_center_freq(fprime_test_api):
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.uhf.SET_FREQ",
-        [437400000],
+def test_rejects_oversized_tc_frame(fprime_test_api, data_port_one):
+    scid = 0x44
+    vcid = 1
+    oversized_frame = _tc_frame(
+        scid, vcid, b"x" * (MAX_LORA_DATA_FRAME_SIZE - TC_FRAME_OVERHEAD_SIZE + 1)
+    )
+    assert len(oversized_frame) == MAX_LORA_DATA_FRAME_SIZE + 1
+
+    data_port_one.write(oversized_frame)
+
+    assert fprime_test_api.await_event(
+        "ReferenceDeployment.dataFrameAccumulator.FrameDetectionSizeError",
+        args=[len(oversized_frame)],
         timeout=2,
     )
 
 
-def test_open_data_port(data_port_one):
-    assert data_port_one.is_open
+def test_reports_no_frame_buffer_available(fprime_test_api, data_port_one):
+    scid = 0x44
+    vcid = 1
 
-
-def test_write_data_port(data_port_one):
-    assert data_port_one.write(b"\0") == 1
-    data_port_one.flush()
-
-
-def test_large_data_port_write_fills_bridge_buffer(fprime_test_api, data_port_one):
-    sent = b"x" * 1024
-
-    assert data_port_one.write(sent) == len(sent)
-    data_port_one.flush()
+    data_port_one.write(_tc_frame(scid, vcid, b"a") + _tc_frame(scid, vcid, b"b"))
 
     assert fprime_test_api.await_event(
-        "ReferenceDeployment.byteComBridge.ByteStreamBufferFull", timeout=2
+        "ReferenceDeployment.dataFrameAccumulator.NoBufferAvailable", timeout=2
     )
 
 
-def test_command_seq_run(fprime_test_api, compiled_sequence_bin):
-    remote_path = "/cs_noop.bin"
+def test_accepts_valid_tc_frames(fprime_test_api, data_port_one):
+    scid = 0x44
+    vcid = 1
+    frame = _tc_frame(scid, vcid, b"payload")
 
-    fprime_test_api.uplink_file_and_await_completion(
-        str(compiled_sequence_bin), remote_path, timeout=5
-    )
+    data_port_one.write(frame)
+    time.sleep(1)
 
-    fprime_test_api.send_and_assert_command(
-        "ReferenceDeployment.cmdSeq.CS_RUN", [remote_path, "BLOCK"], timeout=5
-    )
-    fprime_test_api.assert_event("CdhCore.cmdDisp.NoOpReceived", timeout=2)
+    _assert_no_warnings(fprime_test_api)
