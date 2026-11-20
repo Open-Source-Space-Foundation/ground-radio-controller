@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# A new commit on a PR supersedes its earlier runs. Pushes to main are never
+# cancelled, so every merged commit keeps its result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   fmt:
     runs-on: ubuntu-latest
