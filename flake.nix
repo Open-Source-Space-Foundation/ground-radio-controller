@@ -47,6 +47,8 @@
         ];
 
       env = pkgs: {
+        # Marker the Makefile checks to confirm it runs inside the flake.
+        GRC_NIX_SHELL = "1";
         # Zephyr builds with the Nix-provided ARM toolchain rather than the
         # downloaded Zephyr SDK.
         ZEPHYR_TOOLCHAIN_VARIANT = "gnuarmemb";

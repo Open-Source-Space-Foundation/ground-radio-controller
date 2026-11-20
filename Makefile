@@ -6,13 +6,13 @@ MAKEFLAGS := --jobs=2
 
 -include testconfig
 
+ifndef GRC_NIX_SHELL
+$(error Not in the Nix shell. Use direnv, `nix develop`, or `nix develop -c make ...`)
+endif
+
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
-
-IN_VENV ?= VIRTUAL_ENV=$(shell pwd)/fprime-venv PATH=$(shell pwd)/fprime-venv/bin:$$PATH
-
-export VIRTUAL_ENV ?= $(shell pwd)/fprime-venv
 
 .PHONY: clean
 clean: ## Remove all gitignored files except testconfig
@@ -40,13 +40,13 @@ check-no-gds:
 
 .PHONY: gds
 gds: check-no-gds
-	$(IN_VENV) fprime-gds \
+	fprime-gds \
 		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
 		--uart-skip-port-check
 
 .PHONY: menuconfig
 menuconfig:
-	$(IN_VENV) fprime-util build --target menuconfig
+	fprime-util build --target menuconfig
 
 BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
 BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
@@ -91,15 +91,15 @@ $(BFT_TARGETS):
 	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
 	# `sleep 1` and forget about it.
 
-	setsid env $(IN_VENV) fprime-gds $(GDS_ARGS) 2>&1 & \
+	setsid fprime-gds $(GDS_ARGS) 2>&1 & \
 	GDS_PID=$$!; \
 	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT; \
 	sleep 1; \
-	$(IN_VENV) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
 .PHONY: $(TEST_TARGETS)
 $(TEST_TARGETS):
-	$(IN_VENV) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
 gdb1 attach1 flash1: ACTIVE_PROBE := $(PROBE_ONE)
 gdb2 attach2 flash2only: ACTIVE_PROBE := $(PROBE_TWO)
