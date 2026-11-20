@@ -31,3 +31,12 @@ This should be submitted to upstream Zephyr; the patch can be dropped once
 the submodule advances past a release containing the fix. SX127x-based
 boards (`ground_radio_controller`, v5) do not compile this file and are
 unaffected.
+
+## fprime-zephyr-uart-irq-update-void.patch
+
+**Required with Zephyr 4.5 or newer.**
+
+Zephyr 4.5 changed `uart_irq_update()` to return `void`. `ZephyrUartDriver`
+in the `lib/fprime-zephyr` submodule used its return value, so it fails to
+compile. `nix run .#setup` applies the patch to that submodule. Drop it once
+the submodule carries the fix upstream.

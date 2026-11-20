@@ -65,6 +65,7 @@
         sync_venv() {
           local reqs=(
             requirements.txt
+            requirements-overrides.txt
             lib/fprime/requirements.txt
             lib/zephyr-workspace/zephyr/scripts/requirements-base.txt
             lib/zephyr-workspace/zephyr/scripts/requirements-build-test.txt
@@ -81,7 +82,7 @@
           want="$({ python --version; cat "''${reqs[@]}"; } | shasum | cut -d' ' -f1)"
           if [ "$(cat "$stamp" 2>/dev/null)" != "$want" ]; then
             if uv venv fprime-venv --allow-existing \
-              && uv pip install --prerelease=allow --requirement requirements.txt; then
+              && uv pip install --prerelease=allow --overrides requirements-overrides.txt --requirement requirements.txt; then
               echo "$want" > "$stamp"
             else
               echo "warning: venv sync failed; rerun 'nix run .#setup'" >&2
@@ -148,10 +149,20 @@
             west update
             west zephyr-export
             patch=patches/zephyr-sx126x-wakeup-busy-delay.patch
-            cd lib/zephyr-workspace/zephyr
-            if git apply --check "../../../$patch" 2>/dev/null; then
-              git apply "../../../$patch"
-            fi
+            (
+              cd lib/zephyr-workspace/zephyr
+              if git apply --check "../../../$patch" 2>/dev/null; then
+                git apply "../../../$patch"
+              fi
+            )
+            # fprime-zephyr predates Zephyr 4.5's void uart_irq_update().
+            patch=patches/fprime-zephyr-uart-irq-update-void.patch
+            (
+              cd lib/fprime-zephyr
+              if git apply --check "../../$patch" 2>/dev/null; then
+                git apply "../../$patch"
+              fi
+            )
           '';
 
           # BOARD=<board> nix run .#generate  (defaults to settings.ini)
