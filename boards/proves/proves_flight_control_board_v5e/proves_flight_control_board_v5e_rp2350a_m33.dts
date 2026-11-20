@@ -9,6 +9,6 @@
 
 #include <raspberrypi/rpi_pico/rp2350a.dtsi>
 #include <raspberrypi/rpi_pico/m33.dtsi>
-#include <../boards/raspberrypi/rpi_pico2/rpi_pico2.dtsi>
+#include <../boards/raspberrypi/rpi_pico2/rpi_pico2_cpu0_common.dtsi>
 #include <../boards/raspberrypi/common/rpi_pico-led.dtsi>
 #include "proves_flight_control_board_v5e_hardware.dtsi"

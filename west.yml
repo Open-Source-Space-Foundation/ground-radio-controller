@@ -17,7 +17,7 @@ manifest:
     # Zephyr RTOS core
     - name: zephyr
       repo-path: zephyr
-      revision: v4.3.0
+      revision: v4.5.0
       path: lib/zephyr-workspace/zephyr
       west-commands: scripts/west-commands.yml
       import:
@@ -34,7 +34,7 @@ manifest:
           - segger     # SEGGER RTT support
 
     - name: loramac-node
-      revision: fb00b383072518c918e2258b0916c996f2d4eebe
+      revision: 874544f2a8a0212a0cc12e5eea51a024fd3d93d1
       path: lib/zephyr-workspace/modules/lib/loramac-node
 
     # Core modules required for RP2040/RP2350
@@ -46,36 +46,36 @@ manifest:
 
     - name: cmsis_6
       repo-path: CMSIS_6
-      revision: 06d952b6713a2ca41c9224a62075e4059402a151
+      revision: 1c1840af7a7e757d6e2fec3ddb0e5ce0dfcc93c8
       path: lib/zephyr-workspace/modules/hal/cmsis_6
       groups:
         - hal
 
     - name: hal_rpi_pico
       path: lib/zephyr-workspace/modules/hal/rpi_pico
-      revision: 09e957522da60581cf7958b31f8e625d969c69a5
+      revision: 2e9dbf14fa56e5907aefb07e8e75010ec5210946
       groups:
         - hal
 
     - name: hal_st
-      revision: 9f81b4427e955885398805b7bca0da3a8cd9109c
+      revision: ce795a9b0de623022c17d2ff394587c024aec850
       path: lib/zephyr-workspace/modules/hal/st
       groups:
         - hal
 
     - name: hal_stm32
-      revision: 286dd285b5bb4fddafdfff27b5405264e5a61bfe
+      revision: c9550199186236d610092f4005f8c9bae2a6bfcf
       path: lib/zephyr-workspace/modules/hal/stm32
       groups:
         - hal
 
     - name: picolibc
       path: lib/zephyr-workspace/modules/lib/picolibc
-      revision: 560946f26db075c296beea5b39d99e6de43c9010
+      revision: 01254932e8e81085817ed61fd858648584ffe37c
 
     # Crypto libraries (commonly used)
     - name: mbedtls
-      revision: 85440ef5fffa95d0e9971e9163719189cf34d979
+      revision: c43f34b93797e81fd0257c30004dcd0ae332ae51
       path: lib/zephyr-workspace/modules/crypto/mbedtls
       groups:
         - crypto
@@ -87,11 +87,11 @@ manifest:
         - crypto
 
     - name: mcuboot
-      revision: 96576b341ee19f1c3af6622256b0d4f3d408e1e3
+      revision: 725d63c9d5bc1bb572d802e7a768daf504186daf
       path: lib/zephyr-workspace/bootloader/mcuboot
 
     - name: segger
-      revision: 9f08435a79d41133d7046b7c59d1b25929eda450
+      revision: 50892fdbcf2f570e67baa72b8894a66b16946f72
       path: lib/zephyr-workspace/modules/debug/segger
       groups:
         - debug

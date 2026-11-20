@@ -1,7 +1,7 @@
-diff --git a/drivers/lora/loramac_node/sx126x.c b/drivers/lora/loramac_node/sx126x.c
+diff --git a/drivers/lora/loramac-node/sx126x.c b/drivers/lora/loramac-node/sx126x.c
 index 6221943f5..d4ac247b9 100644
---- a/drivers/lora/loramac_node/sx126x.c
-+++ b/drivers/lora/loramac_node/sx126x.c
+--- a/drivers/lora/loramac-node/sx126x.c
++++ b/drivers/lora/loramac-node/sx126x.c
 @@ -394,6 +394,14 @@ void SX126xWakeup(void)
  		return;
  	}
