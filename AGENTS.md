@@ -9,6 +9,10 @@ One-time workspace setup (submodules, west workspace, SX126x patch):
 the board), `nix run .#build`, `nix run .#flash` (BOOTSEL board via picotool).
 Lint and format with `make fmt` (runs pre-commit).
 
+The pre-commit git hook needs the flake's tools on PATH. Outside direnv (for
+example in an agent shell), commit with `nix develop -c git commit ...`, or the
+hook fails with "Executable ... not found".
+
 ## Tests
 
 The tests are located in `test/one-board/main_test.py`,
