@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# PROVES Flight Control Board v5e — DTS = upstream Pico 2 base + proves_flight_control_board_v5e_hardware.dtsi.
+
+board:
+  name: proves_flight_control_board_v5e
+  full_name: PROVES Flight Control Board v5e
+  vendor: PROVES
+  socs:
+    - name: rp2350a
