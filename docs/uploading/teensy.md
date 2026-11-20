@@ -1,23 +1,30 @@
 # Uploading Guide for the Teensy
 
-This guide sets up `teensy_loader_cli` to flash code onto the Teensy. Alternatively, the `arduino-cli` can also be used. Instructions to setup the `arduino-cli` can be found [here][arduino-cli-guide]
+This guide sets up `teensy_loader_cli` to flash code onto the Teensy.
+Alternatively, the `arduino-cli` can also be used. Instructions to setup the
+`arduino-cli` can be found in the
+[arduino-cli guide][arduino-cli-guide]
 
 These steps were tested for the following boards:
 
 - Teensy 4.1
 
 ## Initial Setup
-1. Follow the `teensy_loader_cli` installation guide [here][teensy-loader-cli-guide]
+
+1. Follow the `teensy_loader_cli` installation guide
+   ([teensy_loader_cli guide][teensy-loader-cli-guide])
 2. If needed, add the `teensy_loader_cli` to the PATH.
 
 > [!NOTE]
 > Mac users can install the `teensy_loader_cli` using homebrew.
 > To install using homebrew, run the following command:
+>
 > ```zsh
 > brew install teensy_loader_cli
 > ```
 
 ## Flashing the Board
+
 ```sh
 # In fprime-zephyr-reference
 
