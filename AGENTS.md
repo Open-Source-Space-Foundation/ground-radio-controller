@@ -49,8 +49,11 @@ diff relative to upstream.
 
 ### Issue tracker
 
-Issues live in GitHub Issues (Open-Source-Space-Foundation/ground-radio-controller), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues
+(Open-Source-Space-Foundation/ground-radio-controller), via the `gh` CLI. See
+`docs/agents/issue-tracker.md`.
 
 ### Domain docs
 
-Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See
+`docs/agents/domain.md`.
