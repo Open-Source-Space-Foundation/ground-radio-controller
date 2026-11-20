@@ -18,7 +18,7 @@ because the number assigned to each device difficult to predict, refer to the
 devices by their symlinks under `/dev/serial/by-id`. The names will be on the
 form:
 
-```
+```text
 /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_291E95CA969699F2-if00
 /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_291E95CA969699F2-if02
 ```
@@ -30,14 +30,14 @@ is the serial number unique to every RP2350 MCU.
 
 To send data out on the link, write to the data port:
 
-```
+```sh
 DATA_PORT="/dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_291E95CA969699F2-if02"
-printf '\0' >"$DATA_PORT'
+printf '\0' >"$DATA_PORT"
 ```
 
 And to read data, read from the data port:
 
-```
+```sh
 socat OPEN:"$DATA_PORT",rawer -
 ```
 
@@ -96,7 +96,8 @@ make help
 
 ### Software Flashing
 
-To flash the software onto the board either drag the uf2 to the board as described above or...
+To flash the software onto the board either drag the uf2 to the board as
+described above or...
 
 `probe-rs` is provided by the Nix flake. Note the repo previously pinned
 version 0.30.0 to work around probe-rs
@@ -113,7 +114,7 @@ two identical debug probes (only Rpi Debug Probe is tested).
 You must make a file `testconfig` in the root defining the device id of the
 probe and the serial numbers of the boards and probes:
 
-```
+```python
 BOARD_ONE = "E68F0394CBF4638F"
 BOARD_TWO = "146BC0289199FFC7"
 PROBE_USB_ID = "2e8a:000c"
@@ -126,7 +127,7 @@ PROBE_TWO = "E6647C7403481E2F"
 You can get the MCU S/Ns by flashing them with the firmware using the above
 BOOTSEL procedure then doing:
 
-```
+```console
 $ ls /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_*
 /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_291E95CA969699F2-if00
 /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_291E95CA969699F2-if02
@@ -136,7 +137,7 @@ $ ls /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_*
 
 You can get the debug probe S/Ns this way:
 
-```
+```console
 $ ls /dev/serial/by-id/usb-Raspberry_Pi_Debug_Probe__CMSIS-DAP__*
 /dev/serial/by-id/usb-Raspberry_Pi_Debug_Probe__CMSIS-DAP__E6647C74033F7030-if01
 /dev/serial/by-id/usb-Raspberry_Pi_Debug_Probe__CMSIS-DAP__E6647C7403481E2F-if01
@@ -157,11 +158,12 @@ wake-up fix from `patches/` applied to the Zephyr submodule (see
 before building.
 
 The PROVES Radio Stick V3 swaps the RP2350 for an STM32U575 and keeps the
-E22-400M30S. Select it with `BOARD=proves_radio_stick_v3 nix run .#generate`, then `nix run .#build`. It has no USB
+E22-400M30S. Select it with `BOARD=proves_radio_stick_v3 nix run .#generate`,
+then `nix run .#build`. It has no USB
 bootloader until firmware is on it, so flash the first image over SWD
 (J22 or the STDC14 header), for example with a Raspberry Pi Debug Probe:
 
-```
+```sh
 openocd -f interface/cmsis-dap.cfg -c "adapter serial <probe S/N>" \
     -f target/stm32u5x.cfg -c "program build-artifacts/zephyr.hex verify reset exit"
 ```
@@ -183,11 +185,13 @@ and change:
 Use `proves_flight_control_board_v5e/rp2350a/m33` for the v5e board, which
 carries an SX1262-based E22-400M30S LoRa module instead of the v5's SX1276.
 The right LoRa driver is picked automatically from the board devicetree.
-Select it with `BOARD=proves_flight_control_board_v5e/rp2350a/m33 nix run .#generate`,
+Select it with
+`BOARD=proves_flight_control_board_v5e/rp2350a/m33 nix run .#generate`,
 then `nix run .#build`. After changing boards, regenerate before building.
 
 The v5e additionally needs the SX126x wake-up fix from `patches/` applied to
-the Zephyr submodule (see `patches/README.md`; `nix run .#setup` applies it); without it, `SET_FREQ`
+the Zephyr submodule (see `patches/README.md`; `nix run .#setup` applies it);
+without it, `SET_FREQ`
 intermittently fails to retune the radio in release builds.
 
 ### Workflow
@@ -223,7 +227,7 @@ attach2` to connect to those streams.
 Zephyr is a bit complicated to configure, so I have found the menuconfig tool
 helpful in exploring and setting configuration options:
 
-```
+```sh
 make menuconfig
 ```
 
@@ -239,7 +243,7 @@ The workflow for seeing how to change `prj.conf` looks like this:
 - Quit `menuconfig`
 - Compare `before` and `after` with this command:
 
-```
+```sh
 $(find -name diffconfig) $(find -name before) $(find -name after)
 ```
 

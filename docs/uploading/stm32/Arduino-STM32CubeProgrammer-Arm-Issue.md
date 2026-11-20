@@ -1,6 +1,10 @@
 # Using the ARM Installation of STM32CubeProgrammer
 
-This guide fixes an issue with the ARM installation of the [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html). This installation uses a slightly different path for its bin folder and results in the `stm32CubeProg.sh` script, provided by Arduino Tools, outputting the following error:
+This guide fixes an issue with the ARM installation of the
+[STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html).
+This installation uses a slightly different path for its bin folder and results
+in the `stm32CubeProg.sh` script, provided by Arduino Tools, outputting the
+following error:
 
 ```shell
 STM32CubeProgrammer not found (STM32_Programmer_CLI).
@@ -10,22 +14,24 @@ STM32CubeProgrammer not found (STM32_Programmer_CLI).
 ```
 
 ## Instructions
+
 To resolve this issue, please follow these steps:
 
-1. Locate the `stm32CubeProg.sh` script. This file, by default, will be in the following path:
+1. Locate the `stm32CubeProg.sh` script. This file, by default, will be in the
+   following path:
 
 ```shell
 ~/Library/Arduino15/packages/STMicroelectronics/tools/STM32Tools/2.3.0/
 ```
 
-2. Edit the `stm32CubeProg.sh` script using an ide or text editor
+1. Edit the `stm32CubeProg.sh` script using an ide or text editor
 
 ```sh
 # Example
 nano ~/Library/Arduino15/packages/STMicroelectronics/tools/STM32Tools/2.3.0/stm32CubeProg.sh
 ```
 
-3. Locate the following block of code in the `stm32CubeProg.sh` script
+1. Locate the following block of code in the `stm32CubeProg.sh` script
 
 ```sh
 if ! command -v $STM32CP_CLI >/dev/null 2>&1; then
@@ -33,7 +39,7 @@ if ! command -v $STM32CP_CLI >/dev/null 2>&1; then
 fi
 ```
 
-4. Insert the following block of code after the previous code block
+1. Insert the following block of code after the previous code block
 
 ```sh
 if ! command -v $STM32CP_CLI >/dev/null 2>&1; then
@@ -59,8 +65,8 @@ The script should look like this:
 ...
 ```
 
-5. Save the file and you are good to go!
+1. Save the file and you are good to go!
 
-# Return to the [STM32 Uploading Guide][stm32]
+## Return to the [STM32 Uploading Guide][stm32]
 
 [stm32]: stm32.md
