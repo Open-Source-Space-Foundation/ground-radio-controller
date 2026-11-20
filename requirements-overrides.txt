@@ -1,6 +1,4 @@
-# uv overrides for pins in lib/fprime/requirements.txt that conflict with
-# Zephyr's requirements (Zephyr 4.5 needs these minimums).
-cmake>=3.28
-lxml>=6.1.0
-pytest>=9.0.3
-requests>=2.33.0
+# uv override for a pin in lib/fprime/requirements.txt that conflicts with
+# Zephyr's requirements (Zephyr 4.5 needs this minimum). Below 4: CMake 4 turns
+# the relative install DESTINATION . into an empty path under fprime_install.
+cmake>=3.28,<4

@@ -3,6 +3,7 @@ telemetry packets ReferenceDeploymentPackets {
   packet Health id 1 group 1 {
     CdhCore.cmdDisp.CommandsDispatched
     CdhCore.cmdDisp.CommandsDropped
+    CdhCore.events.EventsDropped
     ComCcsds.comQueue.comQueueDepth
     uplinkComQueue.comQueueDepth
     downlinkComQueue.comQueueDepth
