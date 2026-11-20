@@ -4,22 +4,31 @@ This guide assumes that the initial setup steps have been completed, and will wa
 
 ## Building the Deployment
 > [!Note]
-> This step can be skipped if the setup.sh script is run. However, any changes made will require you to run `fprime-util build` and may require `fprime-util generate`
+> Run these from inside the Nix environment (`nix develop` or direnv). Any changes made will require you to rebuild and may require regenerating.
 
 1. In order to build the ReferenceDeployment application, or any other F´ application, we first need to generate a build directory. This can be done with the following commands:
 
 ```sh
-# In fprime-zephyr-reference (fprime-venv)
-fprime-util generate
+# In fprime-zephyr-reference
+nix run .#generate
+# Pick a board without editing settings.ini:
+BOARD=proves_radio_stick_v2/rp2350a/m33 nix run .#generate
 ```
 
 2. The next step is to build the ReferenceDeployment application's code.
 ```sh
-# In fprime-zephyr-reference (fprime-venv)
-fprime-util build
+# In fprime-zephyr-reference
+nix run .#build
 ```
 
 ## Flashing the Board
+
+For RP2350 boards (hold BOOTSEL while plugging in, or press RST while holding BOOTSEL), flash with:
+
+```sh
+# In fprime-zephyr-reference
+nix run .#flash
+```
 
 Different boards will likely require different steps to flash software onto the board. Instructions for tested boards are provided [here][board-list] The following is an example of flashing the deployment onto a stm32 board.
 
