@@ -1,7 +1,17 @@
 ## Environment Setup
 
-Every command is run within the venv `./fprime-venv` automatically via `uv`. Use `make fprime-venv`
-to create or update the virtual environment. Most targets automatically depend on it.
+Tooling comes from the Nix flake (`flake.nix`); direnv loads it via `.envrc`, or
+run commands under `nix develop -c <cmd>`. Entering the shell creates and syncs
+the venv `./fprime-venv` (Python packages from `requirements.txt`) automatically.
+
+One-time workspace setup (submodules, west workspace, SX126x patch):
+`nix run .#setup`. Other apps: `nix run .#generate` (`BOARD=<board>` selects
+the board), `nix run .#build`, `nix run .#flash` (BOOTSEL board via picotool).
+Lint and format with `make fmt` (runs pre-commit).
+
+The pre-commit git hook needs the flake's tools on PATH. Outside direnv (for
+example in an agent shell), commit with `nix develop -c git commit ...`, or the
+hook fails with "Executable ... not found".
 
 ## Tests
 
@@ -14,7 +24,7 @@ run one-board main tests, and `make bft2` to run the two-board tests.
 
 Sometimes, especially after the user has polluted the workspace with lots of
 worktree changes via git, the generate cache is corrupted and you will get an
-inexplicable build error. Running `make generate` will force a clean
+inexplicable build error. Running `nix run .#generate` will force a clean
 generate and can sometimes fix these errors.
 
 There are three submodules, `lib/fprime`, `lib/fprime-zephyr`, and

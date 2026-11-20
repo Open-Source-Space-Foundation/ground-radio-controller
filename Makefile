@@ -6,14 +6,13 @@ MAKEFLAGS := --jobs=2
 
 -include testconfig
 
+ifndef GRC_NIX_SHELL
+$(error Not in the Nix shell. Use direnv, `nix develop`, or `nix develop -c make ...`)
+endif
+
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
-
-include makelib/build-tools.mk
-include makelib/zephyr.mk
-
-export VIRTUAL_ENV ?= $(shell pwd)/fprime-venv
 
 .PHONY: clean
 clean: ## Remove all gitignored files except testconfig
@@ -21,35 +20,15 @@ clean: ## Remove all gitignored files except testconfig
 
 ##@ Development
 
-.PHONY: pre-commit-install
-pre-commit-install: $(UVX) ## Install pre-commit hooks
-	@$(UVX) pre-commit install > /dev/null
-
 .PHONY: fmt
-fmt: pre-commit-install ## Lint and format files
-	@$(UVX) pre-commit run --all-files
+fmt: ## Lint and format files
+	@pre-commit run --all-files
 
-.PHONY: submodules
-submodules: ## Initialize and update git submodules
-	@git submodule update --init --recursive
-
-.PHONY: fprime-venv
-fprime-venv: $(UV) submodules ## Create a virtual environment
-	@$(UV) venv fprime-venv --python 3.10 --allow-existing
-	$(UV) pip install --prerelease=allow --requirement requirements.txt
-
-.PHONY: generate
-generate: submodules fprime-venv zephyr ## Generate FPrime project
-	@$(IN_VENV) fprime-util generate --force
-
-BUILD_DIR ?= $(shell pwd)/build-fprime-automatic-zephyr
-BUILD_NINJA ?= $(BUILD_DIR)/build.ninja
-$(BUILD_NINJA): | submodules fprime-venv zephyr
-	@$(IN_VENV) fprime-util generate --force
-
+# Tooling lives in the flake: `nix run .#setup`, `.#generate`, `.#build`, `.#flash`.
+# One shared prerequisite so parallel flash targets build only once.
 .PHONY: build
-build: $(BUILD_NINJA) ## Build FPrime project
-	@$(IN_VENV) fprime-util build
+build:
+	nix run .#build
 
 .PHONY: check-no-gds
 check-no-gds:
@@ -60,14 +39,14 @@ check-no-gds:
 	fi
 
 .PHONY: gds
-gds: check-no-gds fprime-venv
-	$(IN_VENV) fprime-gds \
+gds: check-no-gds
+	fprime-gds \
 		--uart-device "$(BOARD_ONE_CONTROL_PORT)" \
 		--uart-skip-port-check
 
 .PHONY: menuconfig
-menuconfig: fprime-venv
-	$(IN_VENV) fprime-util build --target menuconfig
+menuconfig:
+	fprime-util build --target menuconfig
 
 BOARD_ONE_CONTROL_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if00
 BOARD_ONE_DATA_PORT := /dev/serial/by-id/usb-F_Prime_Ground_Radio_Controller_$(BOARD_ONE)-if02
@@ -106,21 +85,21 @@ bft1 bft1-main: check-no-gds flash1
 bft2 bft2-main bft2-long: check-no-gds flash2
 
 .PHONY: $(BFT_TARGETS)
-$(BFT_TARGETS): fprime-venv
+$(BFT_TARGETS):
 	# Serial port symlinks seem to appear and disappear briefly after device is first
 	# flashed. Can't find a good event to block on to be sure they're stable.
 	# `udevadm settle` and `udevadm wait` don't seem to work as advertised. Just
 	# `sleep 1` and forget about it.
 
-	setsid env $(IN_VENV) fprime-gds $(GDS_ARGS) 2>&1 & \
+	setsid fprime-gds $(GDS_ARGS) 2>&1 & \
 	GDS_PID=$$!; \
 	trap 'kill -SIGTERM -$$GDS_PID 2>/dev/null || true' EXIT; \
 	sleep 1; \
-	$(IN_VENV) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
 .PHONY: $(TEST_TARGETS)
-$(TEST_TARGETS): fprime-venv
-	$(IN_VENV) pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
+$(TEST_TARGETS):
+	pytest $(PYTEST_CFG_ARGS) $(PT_ARGS) $(PYTEST_TESTS)
 
 gdb1 attach1 flash1: ACTIVE_PROBE := $(PROBE_ONE)
 gdb2 attach2 flash2only: ACTIVE_PROBE := $(PROBE_TWO)
@@ -140,5 +119,3 @@ gdb1 gdb2:
 .PHONY: attach1 attach2
 attach1 attach2:
 	probe-rs attach --probe $(PROBE_USB_ID):$(ACTIVE_PROBE) build-artifacts/zephyr.elf
-
-export UV_BIN := $(UV)
