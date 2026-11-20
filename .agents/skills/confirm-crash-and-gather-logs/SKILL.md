@@ -39,7 +39,6 @@ Follow the below procedure exactly.
   expected, explain why.
 - Exit. Do not try to troubleshoot any further.
 
-
 ## Finally
 
 Continue what you were doing, now with the knowledge of the cause of the

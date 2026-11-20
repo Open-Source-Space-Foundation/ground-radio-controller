@@ -1,8 +1,11 @@
+# Agent Instructions
+
 ## Environment Setup
 
 Tooling comes from the Nix flake (`flake.nix`); direnv loads it via `.envrc`, or
 run commands under `nix develop -c <cmd>`. Entering the shell creates and syncs
-the venv `./fprime-venv` (Python packages from `requirements.txt`) automatically.
+the venv `./fprime-venv` (Python packages from `requirements.txt`)
+automatically.
 
 One-time workspace setup (submodules, west workspace, SX126x patch):
 `nix run .#setup`. Other apps: `nix run .#generate` (`BOARD=<board>` selects
@@ -33,6 +36,7 @@ solution that unambiguously belongs in the upstream submodule or you are
 adding logging statements which will later be removed.
 
 When you are writing tests:
+
 - Keep them *as concise as possible*
 - No test should EVER be skipped.
 - Each test should only test ONE THING. And do the minimal amount to test that
@@ -40,3 +44,16 @@ When you are writing tests:
 
 When you are writing code, overall, try to minimize the size of the overall
 diff relative to upstream.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues
+(Open-Source-Space-Foundation/ground-radio-controller), via the `gh` CLI. See
+`docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See
+`docs/agents/domain.md`.

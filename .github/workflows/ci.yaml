@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# A new commit on a PR supersedes its earlier runs. Pushes to main are never
+# cancelled, so every merged commit keeps its result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   fmt:
     runs-on: ubuntu-latest
@@ -30,13 +36,31 @@ jobs:
           nix develop -c make fmt
 
   build:
+    name: build (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      # One broken board must not hide the results of the others.
+      fail-fast: false
+      matrix:
+        include:
+          - name: proves_radio_stick_v1
+            board: ground_radio_controller/rp2350a/m33
+          - name: proves_flight_control_board_v5
+            board: proves_flight_control_board_v5/rp2350a/m33
+          - name: proves_flight_control_board_v5e
+            board: proves_flight_control_board_v5e/rp2350a/m33
+          - name: proves_radio_stick_v2
+            board: proves_radio_stick_v2/rp2350a/m33
+          - name: proves_radio_stick_v3
+            board: proves_radio_stick_v3
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Check out
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
-      - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31
+      - name: Install Nix
+        uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
@@ -44,14 +68,16 @@ jobs:
       - name: Set up workspace
         run: nix run .#setup
 
-      - name: Generate
+      - name: Generate (${{ matrix.board }})
+        env:
+          BOARD: ${{ matrix.board }}
         run: nix run .#generate
 
-      - name: Build
+      - name: Build (${{ matrix.board }})
         run: nix run .#build
 
       - name: Archive build artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: build-artifacts
+          name: build-artifacts-${{ matrix.name }}
           path: build-artifacts/
