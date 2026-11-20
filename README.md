@@ -94,6 +94,23 @@ For the Make helpers described below, try:
 make help
 ```
 
+### Supported Boards
+
+CI builds every board below. Select one with
+`BOARD=<value> nix run .#generate`, or set it in `settings.ini`; regenerate
+after changing boards.
+
+| Board | `BOARD` value | MCU | LoRa radio |
+| --- | --- | --- | --- |
+| Ground Radio Controller (default) | `ground_radio_controller/rp2350a/m33` | RP2350A | SX1276 |
+| PROVES Flight Control Board v5 | `proves_flight_control_board_v5/rp2350a/m33` | RP2350A | SX1276 |
+| PROVES Flight Control Board v5e | `proves_flight_control_board_v5e/rp2350a/m33` | RP2350A | SX1262 (E22-400M30S) |
+| PROVES Radio Stick V2 | `proves_radio_stick_v2/rp2350a/m33` | RP2350A | SX1268 (E22-400M30S) |
+| PROVES Radio Stick V3 | `proves_radio_stick_v3` | STM32U575 | SX1268 (E22-400M30S) |
+
+The LoRa driver is picked from the board devicetree. Boards with an SX126x
+radio need the wake-up fix in `patches/`, which `nix run .#setup` applies.
+
 ### Software Flashing
 
 To flash the software onto the board either drag the uf2 to the board as
