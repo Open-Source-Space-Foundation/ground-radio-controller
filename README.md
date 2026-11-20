@@ -54,28 +54,41 @@ frequency of the broadcast.
 
 ### Software Setup
 
-Install [Zephyr dependencies:](https://docs.zephyrproject.org/latest/develop/getting_started/index.html#install-dependencies)
+The only prerequisites are [Nix](https://nixos.org/download/) with flakes
+enabled (`experimental-features = nix-command flakes`) and, optionally,
+[direnv](https://direnv.net/). The flake provides every tool: the ARM
+toolchain, CMake, Ninja, Python 3.14, uv, probe-rs, picotool, and the linters.
+Nothing is downloaded outside Nix and the Python venv.
 
-#### Linux
+Enter the environment with `direnv allow` (uses `.envrc`) or `nix develop`.
+The first entry creates `fprime-venv` and installs `requirements.txt`; it is
+re-synced whenever the requirements change. The shell also installs the
+pre-commit git hook.
+
+Then, once per clone, fetch the submodules and set up the Zephyr workspace:
+
 ```sh
-sudo apt install --no-install-recommends git cmake ninja-build gperf \
-  ccache dfu-util device-tree-compiler wget xz-utils file make gcc \
-  gcc-multilib g++-multilib libsdl2-dev libmagic1
+nix run .#setup
 ```
 
-#### Everyone
-
-Get started with:
+Build with:
 
 ```sh
-make build
+nix run .#generate
+nix run .#build
 ```
 
-And you can flash a board by plugging it in via USB, holding BOOTSEL, pressing
-RST, releasing BOOTSEL, then copying `build-artifacts/zephyr.uf2` into the
-`RP2350` USB storage device that should have just appeared on your PC.
+To flash a board, plug it in via USB, hold BOOTSEL, press RST, release
+BOOTSEL, then run:
 
-If you get lost try:
+```sh
+nix run .#flash
+```
+
+(Or copy `build-artifacts/zephyr.uf2` onto the `RP2350` USB storage device
+that appeared on your PC.)
+
+For the Make helpers described below, try:
 
 ```sh
 make help
@@ -85,15 +98,10 @@ make help
 
 To flash the software onto the board either drag the uf2 to the board as described above or...
 
-Install probe-rs:
-
-```sh
-cargo install probe-rs-tools --locked --version 0.30.0
-```
-
-`~/.cargo/bin/` should be in your path so that `probe-rs` can be found. We fix
-version to be 0.30.0 to work around probe-rs
-[#3805](https://github.com/probe-rs/probe-rs/issues/3805).
+`probe-rs` is provided by the Nix flake. Note the repo previously pinned
+version 0.30.0 to work around probe-rs
+[#3805](https://github.com/probe-rs/probe-rs/issues/3805); the flake uses
+whatever version nixpkgs ships, so check that issue if flashing misbehaves.
 
 Now you may use the flash commands defined in the `Makefile`.
 
@@ -143,8 +151,10 @@ SX1268-based E22-400M30S LoRa module), edit `settings.ini` and set
 `BOARD=proves_radio_stick_v2/rp2350a/m33`. The right LoRa driver is picked
 automatically from the board devicetree. This board also needs the SX126x
 wake-up fix from `patches/` applied to the Zephyr submodule (see
-`patches/README.md`). After changing boards, regenerate with
-`make generate` before building.
+`patches/README.md`; `nix run .#setup` applies it). Select the board with
+`BOARD=proves_radio_stick_v2/rp2350a/m33 nix run .#generate` (this overrides
+`settings.ini`), then `nix run .#build`. After changing boards, regenerate
+before building.
 
 Finally, if you want to flash the GRC software on a PROVES flight controller
 board rather than the radio controller board, you need to edit `settings.ini`
