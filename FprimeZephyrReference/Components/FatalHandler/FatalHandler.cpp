@@ -17,6 +17,8 @@
 #include <zephyr/sys/reboot.h>
 #include <zephyr/logging/log_ctrl.h>
 #include <zephyr/kernel.h>
+#include <zephyr/drivers/hwinfo.h>
+#include <zephyr/sys/byteorder.h>
 #if defined(CONFIG_SOC_FAMILY_RPI_PICO)
 #include <pico/bootrom.h>
 #endif
@@ -65,12 +67,24 @@ void FatalHandler ::RESTART_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
     this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
+U32 FatalHandler ::bootloaderKey() {
+    // The USB stack prints these same bytes in hex as the serial number, so the
+    // key is the serial's last 8 hex digits.
+    U8 id[CONFIG_USBD_HWINFO_DEVID_LENGTH] = {};
+    const ssize_t len = hwinfo_get_device_id(id, sizeof(id));
+    if (len < 4) {
+        return 0;
+    }
+    return sys_get_be32(&id[len - 4]);
+}
+
 bool FatalHandler ::checkBootloaderKey(FwOpcodeType opCode, U32 cmdSeq, U32 key) {
-    if (key == static_cast<U32>(FatalHandler_BOOTLOADER_KEY)) {
+    const U32 expected = bootloaderKey();
+    if (expected != 0 && key == expected) {
         return true;
     }
     this->m_bootloaderArmedAtMs = NOT_ARMED;
-    this->log_WARNING_LO_BootloaderKeyRejected(key);
+    this->log_WARNING_LO_BootloaderKeyRejected(key, expected);
     this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::VALIDATION_ERROR);
     return false;
 }

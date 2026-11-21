@@ -9,16 +9,16 @@ module Components {
     @ Issue a FSW reset
     sync command RESTART
 
-    @ Key that ARM_BOOTLOADER and ENTER_BOOTLOADER must carry
-    constant BOOTLOADER_KEY = 0xB007B007
-
     @ Seconds ENTER_BOOTLOADER stays allowed after ARM_BOOTLOADER
     constant BOOTLOADER_ARM_WINDOW_S = 30
 
-    @ First step of entering the ROM bootloader: opens the arm window
+    @ First step of entering the ROM bootloader: opens the arm window.
+    @ key is the last 8 hex digits of this board's USB serial number, so a
+    @ command meant for another board on the same host is rejected.
     sync command ARM_BOOTLOADER(key: U32)
 
-    @ Second step: reboot into the ROM USB bootloader (BOOTSEL) for reflashing
+    @ Second step: reboot into the ROM USB bootloader (BOOTSEL) for reflashing.
+    @ key is the same as for ARM_BOOTLOADER.
     sync command ENTER_BOOTLOADER(key: U32)
 
     @ Event to indicate reboot is happening
@@ -31,10 +31,10 @@ module Components {
       severity activity high \
       format "Bootloader entry armed for {} s; send ENTER_BOOTLOADER to reboot into BOOTSEL"
 
-    @ A bootloader command carried the wrong key
-    event BootloaderKeyRejected(key: U32) \
+    @ A bootloader command carried another board's key
+    event BootloaderKeyRejected(key: U32, expected: U32) \
       severity warning low \
-      format "Bootloader command rejected: wrong key 0x{x}"
+      format "Bootloader command rejected: key 0x{x} is not this board's 0x{x}"
 
     @ ENTER_BOOTLOADER arrived without a live arm
     event BootloaderNotArmed() \

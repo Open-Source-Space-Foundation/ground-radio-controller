@@ -39,6 +39,9 @@ class FatalHandler final : public FatalHandlerComponentBase {
   private:
     static constexpr I64 NOT_ARMED = -1;
 
+    //! Last 4 bytes of the hardware ID behind the USB serial number, or 0 if unknown
+    static U32 bootloaderKey();
+
     //! Reject a bootloader command whose key is wrong, and disarm
     bool checkBootloaderKey(FwOpcodeType opCode, U32 cmdSeq, U32 key);
 

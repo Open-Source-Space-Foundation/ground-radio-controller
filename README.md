@@ -92,37 +92,45 @@ that appeared on your PC.)
 
 An RP2350 board that runs this firmware can reboot itself into the ROM USB
 bootloader (BOOTSEL) on command, so a stick at a remote station can be
-reflashed over SSH. It takes two commands, each carrying the key
-`0xB007B007`:
+reflashed over SSH. It takes two commands, each carrying the last 8 hex
+digits of the stick's USB serial number as its key (`0x969699F2` for
+`291E95CA969699F2`):
 
 1. `CdhCore.fatalHandler.ARM_BOOTLOADER` opens a 30 s window.
 2. `CdhCore.fatalHandler.ENTER_BOOTLOADER` reboots into BOOTSEL.
 
-`ENTER_BOOTLOADER` without a live arm, or either command with the wrong key,
-is rejected with a warning event and disarms. A single stray or replayed
-command can't drop the stick off the air. The stick stops receiving and
-transmitting the moment it reboots, so never send them during a pass.
+`ENTER_BOOTLOADER` without a live arm, or either command with another
+stick's key, is rejected with a warning event and disarms. A single stray or
+replayed command can't drop the stick off the air, and a command sent to the
+wrong stick's GDS does nothing. The stick stops receiving and transmitting
+the moment it reboots, so never send them during a pass.
 
 `scripts/remote-flash.sh` runs the whole sequence on the host the stick is
-plugged into. It sends both commands through the GDS that holds the control
-port, waits for the stick to enumerate in BOOTSEL under the same serial
-number, then flashes, verifies and boots the new image with `picotool`:
+plugged into, Linux or macOS:
 
 ```sh
 scripts/remote-flash.sh --serial 291E95CA969699F2 \
-    --uf2 build-artifacts/zephyr.uf2 --gds http://127.0.0.1:5000
+    --gds http://127.0.0.1:5051 --uf2 build-artifacts/zephyr.uf2
 ```
 
-`--gds` is the GDS web address (`fprime-gds` serves it on port 5000 by
-default). That GDS must load a dictionary that has the two commands, and the
-stick must already run firmware that has them, so the first update to this
-firmware still needs BOOTSEL by hand or a debug probe.
+It refuses to start while any process holds the stick's data port open,
+since that usually means a pass, and refuses a UF2 that lacks this feature,
+since the next update would then need hands on the stick. `--force` skips
+both checks. Then it sends both commands through the GDS at `--gds` (the web
+address of the GDS on this stick's control port), waits for the stick in
+BOOTSEL under the same serial number, flashes, verifies and boots the new
+image with `picotool`, and waits for the control port to come back.
+
+That GDS must load a dictionary that has the two commands, and the stick must
+already run firmware that has them, so the first update to this firmware
+still needs BOOTSEL by hand or a debug probe.
 
 With `--enter-only` the script stops in BOOTSEL; from there
 `picotool reboot --ser <serial>` boots the old image again. The host needs
-`curl` and `picotool` (Homebrew and most Linux distros package it; on Linux
-it also needs the Raspberry Pi udev rules or root). The Radio Stick V3
-(STM32U575) answers `ENTER_BOOTLOADER` with `BootloaderUnsupported` for now.
+`curl`, `python3` and `picotool` (Homebrew and most Linux distros package it;
+on Linux it also needs the Raspberry Pi udev rules or root). The Radio Stick
+V3 (STM32U575) answers `ENTER_BOOTLOADER` with `BootloaderUnsupported` for
+now.
 
 For the Make helpers described below, try:
 
