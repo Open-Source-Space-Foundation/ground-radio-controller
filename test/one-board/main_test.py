@@ -2,6 +2,8 @@
 These tests require that one board be connected to the PC.
 """
 
+import re
+import subprocess
 import time
 
 from fprime_gds.common.communication.ccsds.space_data_link import (
@@ -64,3 +66,51 @@ def test_accepts_valid_tc_frames(fprime_test_api, data_port_one):
     time.sleep(1)
 
     _assert_no_warnings(fprime_test_api)
+
+
+def _serial(data_port):
+    return re.search(r"_([0-9A-F]+)-if02$", data_port.port).group(1)
+
+
+def _bootloader_key(data_port):
+    return int(_serial(data_port)[-8:], 16)
+
+
+def test_bootloader_rejects_another_boards_key(fprime_test_api, data_port_one):
+    fprime_test_api.send_command(
+        "CdhCore.fatalHandler.ARM_BOOTLOADER", [_bootloader_key(data_port_one) ^ 1]
+    )
+
+    assert fprime_test_api.await_event(
+        "CdhCore.fatalHandler.BootloaderKeyRejected", timeout=2
+    )
+
+
+def test_enter_bootloader_needs_arm(fprime_test_api, data_port_one):
+    fprime_test_api.send_command(
+        "CdhCore.fatalHandler.ENTER_BOOTLOADER", [_bootloader_key(data_port_one)]
+    )
+
+    assert fprime_test_api.await_event(
+        "CdhCore.fatalHandler.BootloaderNotArmed", timeout=2
+    )
+
+
+def test_enter_bootloader_reboots_into_bootsel(fprime_test_api, data_port_one):
+    serial = _serial(data_port_one)
+    key = _bootloader_key(data_port_one)
+    fprime_test_api.send_and_assert_command(
+        "CdhCore.fatalHandler.ARM_BOOTLOADER", [key]
+    )
+    fprime_test_api.send_command("CdhCore.fatalHandler.ENTER_BOOTLOADER", [key])
+
+    deadline = time.monotonic() + 10
+    in_bootsel = False
+    while not in_bootsel and time.monotonic() < deadline:
+        info = subprocess.run(
+            ["picotool", "info", "--ser", serial], check=False, capture_output=True
+        )
+        in_bootsel = info.returncode == 0
+        time.sleep(0.5)
+    subprocess.run(["picotool", "reboot", "--ser", serial], check=False)
+    assert in_bootsel, f"{serial} did not appear in BOOTSEL"

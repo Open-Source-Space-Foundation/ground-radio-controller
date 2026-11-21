@@ -12,3 +12,5 @@ extend-exclude = ["uv.lock", "flake.lock", "lib/"]
 Auxillary = "Auxillary"
 # STM32 internal oscillator (HSI, HSI48) in the V3 board devicetree.
 HSI = "HSI"
+# picotool's --ser option (USB serial number).
+ser = "ser"

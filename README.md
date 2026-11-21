@@ -88,6 +88,55 @@ nix run .#flash
 (Or copy `build-artifacts/zephyr.uf2` onto the `RP2350` USB storage device
 that appeared on your PC.)
 
+### Remote Flashing (no buttons)
+
+An RP2350 board that runs this firmware can reboot itself into the ROM USB
+bootloader (BOOTSEL) on command, so a stick at a remote station can be
+reflashed over SSH. It takes two commands, each carrying the last 8 hex
+digits of the stick's USB serial number as its key (`0x969699F2` for
+`291E95CA969699F2`):
+
+1. `CdhCore.fatalHandler.ARM_BOOTLOADER` opens a 30 s window.
+2. `CdhCore.fatalHandler.ENTER_BOOTLOADER` reboots into BOOTSEL.
+
+`ENTER_BOOTLOADER` without a live arm, or either command with another
+stick's key, is rejected with a warning event and disarms. A single stray or
+replayed command can't drop the stick off the air, and a command sent to the
+wrong stick's GDS does nothing. The stick stops receiving and transmitting
+the moment it reboots, so never send them during a pass.
+
+`scripts/remote-flash.sh` runs the whole sequence on the host the stick is
+plugged into, Linux or macOS:
+
+```sh
+scripts/remote-flash.sh --serial 291E95CA969699F2 \
+    --gds http://127.0.0.1:5051 --uf2 build-artifacts/zephyr.uf2
+```
+
+It refuses to start while any process holds the stick's data port open,
+since that usually means a pass, and refuses a UF2 that lacks this feature,
+since the next update would then need hands on the stick.
+`--allow-busy` and `--allow-any-image` skip those checks. A pass that is
+armed but has not opened the data port yet is not detected, so check the
+station's schedule first.
+
+Then it sends both commands through the GDS at `--gds` (the web address of
+the GDS on this stick's control port), waits for the stick in
+BOOTSEL under the same serial number, flashes, verifies and boots the new
+image with `picotool`, and waits for the control port to come back.
+
+That GDS must load a dictionary that has the two commands, and the stick must
+already run firmware that has them, so the first update to this firmware
+still needs BOOTSEL by hand or a debug probe.
+
+With `--enter-only` the script stops in BOOTSEL; from there
+`picotool reboot --ser <serial>` boots the old image again. The host needs
+`curl`, `python3`, `lsof` or `fuser`, and `picotool` 2.x (Homebrew packages
+it; older distro packages are 1.x, which can't target a serial number). On
+Linux it also needs picotool's udev rules or root. The Radio Stick
+V3 (STM32U575) answers `ENTER_BOOTLOADER` with `BootloaderUnsupported` for
+now.
+
 For the Make helpers described below, try:
 
 ```sh
