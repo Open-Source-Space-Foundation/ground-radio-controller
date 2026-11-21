@@ -115,9 +115,13 @@ scripts/remote-flash.sh --serial 291E95CA969699F2 \
 
 It refuses to start while any process holds the stick's data port open,
 since that usually means a pass, and refuses a UF2 that lacks this feature,
-since the next update would then need hands on the stick. `--force` skips
-both checks. Then it sends both commands through the GDS at `--gds` (the web
-address of the GDS on this stick's control port), waits for the stick in
+since the next update would then need hands on the stick.
+`--allow-busy` and `--allow-any-image` skip those checks. A pass that is
+armed but has not opened the data port yet is not detected, so check the
+station's schedule first.
+
+Then it sends both commands through the GDS at `--gds` (the web address of
+the GDS on this stick's control port), waits for the stick in
 BOOTSEL under the same serial number, flashes, verifies and boots the new
 image with `picotool`, and waits for the control port to come back.
 
@@ -127,8 +131,9 @@ still needs BOOTSEL by hand or a debug probe.
 
 With `--enter-only` the script stops in BOOTSEL; from there
 `picotool reboot --ser <serial>` boots the old image again. The host needs
-`curl`, `python3` and `picotool` (Homebrew and most Linux distros package it;
-on Linux it also needs the Raspberry Pi udev rules or root). The Radio Stick
+`curl`, `python3`, `lsof` or `fuser`, and `picotool` 2.x (Homebrew packages
+it; older distro packages are 1.x, which can't target a serial number). On
+Linux it also needs picotool's udev rules or root. The Radio Stick
 V3 (STM32U575) answers `ENTER_BOOTLOADER` with `BootloaderUnsupported` for
 now.
 

@@ -13,8 +13,9 @@
 #    control port to come back.
 #
 # --enter-only stops after step 3; `picotool reboot --ser <serial>` boots the
-# old image again from there. --force skips the data port and image checks.
-# Needs curl, picotool and python3.
+# old image again from there. --allow-busy skips the data port check and
+# --allow-any-image the check that the UF2 can itself be reflashed remotely.
+# Needs curl, picotool 2.x, python3, and lsof or fuser.
 set -euo pipefail
 
 export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH
@@ -23,7 +24,8 @@ GDS_URL=""
 SERIAL=""
 UF2=""
 ENTER_ONLY=0
-FORCE=0
+ALLOW_BUSY=0
+ALLOW_ANY_IMAGE=0
 TIMEOUT_S=30
 GDS_KEY="0xfeedcafe"
 # Text of the EnteringBootloader event; an image without it cannot be reflashed remotely.
@@ -33,7 +35,7 @@ usage() {
     sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
     echo
     echo "Options: --serial SN --gds URL (both required)  --uf2 FILE"
-    echo "         --enter-only  --force  --timeout SECONDS (default $TIMEOUT_S)"
+    echo "         --enter-only  --allow-busy  --allow-any-image  --timeout SECONDS (default $TIMEOUT_S)"
     exit "${1:-0}"
 }
 
@@ -44,7 +46,8 @@ while [ $# -gt 0 ]; do
     --gds) GDS_URL="${2:?--gds needs a value}"; shift 2 ;;
     --timeout) TIMEOUT_S="${2:?--timeout needs a value}"; shift 2 ;;
     --enter-only) ENTER_ONLY=1; shift ;;
-    --force) FORCE=1; shift ;;
+    --allow-busy) ALLOW_BUSY=1; shift ;;
+    --allow-any-image) ALLOW_ANY_IMAGE=1; shift ;;
     -h | --help) usage 0 ;;
     *) echo "unknown option: $1" >&2; usage 2 ;;
     esac
@@ -61,6 +64,8 @@ fi
 for tool in curl picotool python3; do
     command -v "$tool" >/dev/null || die "$tool not found on PATH"
 done
+[[ $(picotool version 2>/dev/null) =~ picotool\ v([0-9]+) ]] && [ "${BASH_REMATCH[1]}" -ge 2 ] ||
+    die "picotool 2.x is required (1.x has no --ser and no RP2350 support)"
 KEY="0x${SERIAL: -8}"
 
 # Serial ports of the USB device with this serial number, control port first.
@@ -101,11 +106,22 @@ send() {
 }
 
 if [ "$(uname)" != Darwin ] && [ "$(id -u)" -ne 0 ] &&
-    ! grep -qrs 2e8a /etc/udev/rules.d /lib/udev/rules.d /usr/lib/udev/rules.d; then
-    die "no udev rule for Raspberry Pi USB (2e8a): picotool could not reach the stick in BOOTSEL"
+    ! grep -qrsiE '2e8a.*000f|picotool' /etc/udev/rules.d /lib/udev/rules.d /usr/lib/udev/rules.d; then
+    die "no udev rule for the RP2350 bootloader (2e8a:000f): picotool could not reach the stick in BOOTSEL"
 fi
 
-if [ "$ENTER_ONLY" -eq 0 ] && [ "$FORCE" -eq 0 ]; then
+# Pids holding a device open; fails when neither lsof nor fuser exists.
+holders_of() {
+    if command -v lsof >/dev/null; then
+        lsof -t "$1" 2>/dev/null || true
+    elif command -v fuser >/dev/null; then
+        fuser "$1" 2>/dev/null || true
+    else
+        return 1
+    fi
+}
+
+if [ "$ENTER_ONLY" -eq 0 ] && [ "$ALLOW_ANY_IMAGE" -eq 0 ]; then
     python3 - "$UF2" "$ENTRY_MARKER" <<'EOF' ||
 import struct, sys
 data = open(sys.argv[1], "rb").read()
@@ -116,7 +132,7 @@ payload = b"".join(
 )
 sys.exit(sys.argv[2].encode() not in payload)
 EOF
-        die "$UF2 lacks the remote bootloader entry; flashing it would need hands on the stick next time (--force to flash anyway)"
+        die "$UF2 lacks the remote bootloader entry; flashing it would need hands on the stick next time (--allow-any-image to flash anyway)"
 fi
 
 if in_bootsel; then
@@ -126,8 +142,10 @@ else
     [ "$(wc -l <<<"$ports")" -eq 2 ] || die "$SERIAL is neither running (control and data port) nor in BOOTSEL"
     data_port=$(tail -1 <<<"$ports")
     data_dev=$(realpath "$data_port" 2>/dev/null || echo "$data_port")
-    if [ "$FORCE" -eq 0 ] && holders=$(lsof -t "$data_dev" 2>/dev/null); then
-        die "data port $data_port is open (pid $holders); a pass may be running (--force to go ahead)"
+    if [ "$ALLOW_BUSY" -eq 0 ]; then
+        holders=$(holders_of "$data_dev") || die "need lsof or fuser to check the data port (--allow-busy to skip)"
+        [ -z "${holders// /}" ] ||
+            die "data port $data_port is open (pid $holders); a pass may be running (--allow-busy to go ahead)"
     fi
     echo "entering BOOTSEL on $SERIAL via $GDS_URL"
     send ARM_BOOTLOADER

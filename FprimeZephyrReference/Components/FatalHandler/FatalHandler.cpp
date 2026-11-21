@@ -111,7 +111,7 @@ void FatalHandler ::ENTER_BOOTLOADER_cmdHandler(FwOpcodeType opCode, U32 cmdSeq,
     }
 #if defined(CONFIG_SOC_FAMILY_RPI_PICO)
     this->log_ACTIVITY_HI_EnteringBootloader();
-    Os::Task::delay(Fw::TimeInterval(0, 100000));  // Delay to allow event to go out
+    Os::Task::delay(Fw::TimeInterval(0, 500000));  // Let the event pass the logger and the CDC TX delay
     // Watchdog reboot into the BOOTSEL USB drive and PICOBOOT; picotool flashes from there.
     reset_usb_boot(0, 0);
 #else
