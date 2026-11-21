@@ -12,9 +12,14 @@
 
 #include <Fw/Logger/Logger.hpp>
 #include <FprimeZephyrReference/Components/FatalHandler/FatalHandler.hpp>
+#include <FprimeZephyrReference/Components/FatalHandler/FppConstantsAc.hpp>
 #include <Fw/FPrimeBasicTypes.hpp>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/logging/log_ctrl.h>
+#include <zephyr/kernel.h>
+#if defined(CONFIG_SOC_FAMILY_RPI_PICO)
+#include <pico/bootrom.h>
+#endif
 
 namespace Components {
 
@@ -58,6 +63,47 @@ void FatalHandler ::RESTART_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
     Os::Task::delay(Fw::TimeInterval(0, 100000));  // Delay to allow event to go out
     this->reboot();
     this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+}
+
+bool FatalHandler ::checkBootloaderKey(FwOpcodeType opCode, U32 cmdSeq, U32 key) {
+    if (key == static_cast<U32>(FatalHandler_BOOTLOADER_KEY)) {
+        return true;
+    }
+    this->m_bootloaderArmedAtMs = NOT_ARMED;
+    this->log_WARNING_LO_BootloaderKeyRejected(key);
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::VALIDATION_ERROR);
+    return false;
+}
+
+void FatalHandler ::ARM_BOOTLOADER_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, U32 key) {
+    if (!this->checkBootloaderKey(opCode, cmdSeq, key)) {
+        return;
+    }
+    this->m_bootloaderArmedAtMs = k_uptime_get();
+    this->log_ACTIVITY_HI_BootloaderArmed(FatalHandler_BOOTLOADER_ARM_WINDOW_S);
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+}
+
+void FatalHandler ::ENTER_BOOTLOADER_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, U32 key) {
+    if (!this->checkBootloaderKey(opCode, cmdSeq, key)) {
+        return;
+    }
+    const I64 armedAtMs = this->m_bootloaderArmedAtMs;
+    this->m_bootloaderArmedAtMs = NOT_ARMED;
+    if (armedAtMs == NOT_ARMED || k_uptime_get() - armedAtMs > FatalHandler_BOOTLOADER_ARM_WINDOW_S * 1000) {
+        this->log_WARNING_LO_BootloaderNotArmed();
+        this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::EXECUTION_ERROR);
+        return;
+    }
+#if defined(CONFIG_SOC_FAMILY_RPI_PICO)
+    this->log_ACTIVITY_HI_EnteringBootloader();
+    Os::Task::delay(Fw::TimeInterval(0, 100000));  // Delay to allow event to go out
+    // Watchdog reboot into the BOOTSEL USB drive and PICOBOOT; picotool flashes from there.
+    reset_usb_boot(0, 0);
+#else
+    this->log_WARNING_LO_BootloaderUnsupported();
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::EXECUTION_ERROR);
+#endif
 }
 
 }  // namespace Components

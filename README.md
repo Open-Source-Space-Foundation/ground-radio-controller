@@ -88,6 +88,42 @@ nix run .#flash
 (Or copy `build-artifacts/zephyr.uf2` onto the `RP2350` USB storage device
 that appeared on your PC.)
 
+### Remote Flashing (no buttons)
+
+An RP2350 board that runs this firmware can reboot itself into the ROM USB
+bootloader (BOOTSEL) on command, so a stick at a remote station can be
+reflashed over SSH. It takes two commands, each carrying the key
+`0xB007B007`:
+
+1. `CdhCore.fatalHandler.ARM_BOOTLOADER` opens a 30 s window.
+2. `CdhCore.fatalHandler.ENTER_BOOTLOADER` reboots into BOOTSEL.
+
+`ENTER_BOOTLOADER` without a live arm, or either command with the wrong key,
+is rejected with a warning event and disarms. A single stray or replayed
+command can't drop the stick off the air. The stick stops receiving and
+transmitting the moment it reboots, so never send them during a pass.
+
+`scripts/remote-flash.sh` runs the whole sequence on the host the stick is
+plugged into. It sends both commands through the GDS that holds the control
+port, waits for the stick to enumerate in BOOTSEL under the same serial
+number, then flashes, verifies and boots the new image with `picotool`:
+
+```sh
+scripts/remote-flash.sh --serial 291E95CA969699F2 \
+    --uf2 build-artifacts/zephyr.uf2 --gds http://127.0.0.1:5000
+```
+
+`--gds` is the GDS web address (`fprime-gds` serves it on port 5000 by
+default). That GDS must load a dictionary that has the two commands, and the
+stick must already run firmware that has them, so the first update to this
+firmware still needs BOOTSEL by hand or a debug probe.
+
+With `--enter-only` the script stops in BOOTSEL; from there
+`picotool reboot --ser <serial>` boots the old image again. The host needs
+`curl` and `picotool` (Homebrew and most Linux distros package it; on Linux
+it also needs the Raspberry Pi udev rules or root). The Radio Stick V3
+(STM32U575) answers `ENTER_BOOTLOADER` with `BootloaderUnsupported` for now.
+
 For the Make helpers described below, try:
 
 ```sh
