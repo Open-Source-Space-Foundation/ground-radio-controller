@@ -59,3 +59,15 @@ it can't spin on the work queue.
 A workspace set up before this patch existed carries the older compile-only
 patch, and setup stops with a message. Reset the submodule with
 `git -C lib/fprime-zephyr checkout -- .` and run setup again.
+
+## zephyr-cdc-acm-resume-tx.patch
+
+**Required with `fprime-zephyr-zephyr-4.5.patch`.** `nix run .#setup` applies
+it to the Zephyr submodule.
+
+While the USB bus is suspended, CDC ACM fills its current TX buffer but can't
+queue it. On resume it only clears the suspended flag, so when no transfer was
+in flight, nothing ever sends that buffer, and the port stays silent until the
+stick re-enumerates. The old `poll_out` path hid this, because every
+`poll_out` call scheduled the TX work. The patch schedules the leftover data
+on resume. It should go upstream to Zephyr.
