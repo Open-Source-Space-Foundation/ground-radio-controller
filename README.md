@@ -143,6 +143,8 @@ For the Make helpers described below, try:
 make help
 ```
 
+Screenshots from a bench run: [docs/remote-flash](docs/remote-flash)
+
 ### Supported Boards
 
 CI builds every board below. Select one with
