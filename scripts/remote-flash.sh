@@ -5,7 +5,7 @@
 #       --uf2 build-artifacts/zephyr.uf2
 #
 # 1. Refuses if anything holds the stick's data port open (a pass may be on).
-# 2. Sends CdhCore.fatalHandler.ARM_BOOTLOADER then ENTER_BOOTLOADER through the
+# 2. Sends ReferenceDeployment.bootloaderTrigger.ARM_BOOTLOADER then TRIGGER_BOOTLOADER through the
 #    GDS on the stick's control port (--gds, its web address). The key is the
 #    serial's last 8 hex digits, so a GDS on another stick rejects both.
 # 3. Waits for the stick to show up in BOOTSEL with the same serial number.
@@ -102,7 +102,7 @@ send() {
     curl --fail -sS -X PUT \
         -H 'Content-Type: application/json' \
         -d "{\"key\": \"$GDS_KEY\", \"arguments\": [\"$KEY\"]}" \
-        "$GDS_URL/commands/CdhCore.fatalHandler.$1" >/dev/null
+        "$GDS_URL/commands/ReferenceDeployment.bootloaderTrigger.$1" >/dev/null
 }
 
 if [ "$(uname)" != Darwin ] && [ "$(id -u)" -ne 0 ] &&
@@ -149,7 +149,7 @@ else
     fi
     echo "entering BOOTSEL on $SERIAL via $GDS_URL"
     send ARM_BOOTLOADER
-    send ENTER_BOOTLOADER
+    send TRIGGER_BOOTLOADER
     if ! wait_for "$SERIAL in BOOTSEL" in_bootsel; then
         picotool info --ser "$SERIAL" || true
         die "$SERIAL never reached BOOTSEL; check the GDS events for BootloaderKeyRejected or BootloaderNotArmed"

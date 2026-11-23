@@ -96,10 +96,10 @@ reflashed over SSH. It takes two commands, each carrying the last 8 hex
 digits of the stick's USB serial number as its key (`0x969699F2` for
 `291E95CA969699F2`):
 
-1. `CdhCore.fatalHandler.ARM_BOOTLOADER` opens a 30 s window.
-2. `CdhCore.fatalHandler.ENTER_BOOTLOADER` reboots into BOOTSEL.
+1. `ReferenceDeployment.bootloaderTrigger.ARM_BOOTLOADER` opens a 30 s window.
+2. `ReferenceDeployment.bootloaderTrigger.TRIGGER_BOOTLOADER` reboots into BOOTSEL.
 
-`ENTER_BOOTLOADER` without a live arm, or either command with another
+`TRIGGER_BOOTLOADER` without a live arm, or either command with another
 stick's key, is rejected with a warning event and disarms. A single stray or
 replayed command can't drop the stick off the air, and a command sent to the
 wrong stick's GDS does nothing. The stick stops receiving and transmitting
@@ -134,7 +134,7 @@ With `--enter-only` the script stops in BOOTSEL; from there
 `curl`, `python3`, `lsof` or `fuser`, and `picotool` 2.x (Homebrew packages
 it; older distro packages are 1.x, which can't target a serial number). On
 Linux it also needs picotool's udev rules or root. The Radio Stick
-V3 (STM32U575) answers `ENTER_BOOTLOADER` with `BootloaderUnsupported` for
+V3 (STM32U575) answers `TRIGGER_BOOTLOADER` with `BootloaderUnsupported` for
 now.
 
 For the Make helpers described below, try:

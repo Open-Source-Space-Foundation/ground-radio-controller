@@ -208,4 +208,6 @@ module ReferenceDeployment {
 
   instance activityLeds: Components.ActivityLeds base id 0x1001D000
 
+  instance bootloaderTrigger: Components.BootloaderTrigger base id 0x1001E000
+
 }

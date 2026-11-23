@@ -37,18 +37,6 @@ class FatalHandler final : public FatalHandlerComponentBase {
     void reboot();
 
   private:
-    static constexpr I64 NOT_ARMED = -1;
-
-    //! Last 4 bytes of the hardware ID behind the USB serial number, or 0 if unknown
-    static U32 bootloaderKey();
-
-    //! Reject a bootloader command whose key is wrong, and disarm
-    bool checkBootloaderKey(FwOpcodeType opCode, U32 cmdSeq, U32 key);
-
-    //! Uptime of the last valid ARM_BOOTLOADER, or NOT_ARMED
-    I64 m_bootloaderArmedAtMs = NOT_ARMED;
-
-  private:
     // ----------------------------------------------------------------------
     // Handler implementations for user-defined typed input ports
     // ----------------------------------------------------------------------
@@ -70,12 +58,6 @@ class FatalHandler final : public FatalHandlerComponentBase {
     void RESTART_cmdHandler(FwOpcodeType opCode,  //!< The opcode
                             U32 cmdSeq            //!< The command sequence number
                             ) override;
-
-    //! Handler implementation for command ARM_BOOTLOADER
-    void ARM_BOOTLOADER_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, U32 key) override;
-
-    //! Handler implementation for command ENTER_BOOTLOADER
-    void ENTER_BOOTLOADER_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, U32 key) override;
 };
 
 }  // namespace Components

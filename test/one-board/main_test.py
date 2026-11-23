@@ -78,21 +78,23 @@ def _bootloader_key(data_port):
 
 def test_bootloader_rejects_another_boards_key(fprime_test_api, data_port_one):
     fprime_test_api.send_command(
-        "CdhCore.fatalHandler.ARM_BOOTLOADER", [_bootloader_key(data_port_one) ^ 1]
+        "ReferenceDeployment.bootloaderTrigger.ARM_BOOTLOADER",
+        [_bootloader_key(data_port_one) ^ 1],
     )
 
     assert fprime_test_api.await_event(
-        "CdhCore.fatalHandler.BootloaderKeyRejected", timeout=2
+        "ReferenceDeployment.bootloaderTrigger.BootloaderKeyRejected", timeout=2
     )
 
 
 def test_enter_bootloader_needs_arm(fprime_test_api, data_port_one):
     fprime_test_api.send_command(
-        "CdhCore.fatalHandler.ENTER_BOOTLOADER", [_bootloader_key(data_port_one)]
+        "ReferenceDeployment.bootloaderTrigger.TRIGGER_BOOTLOADER",
+        [_bootloader_key(data_port_one)],
     )
 
     assert fprime_test_api.await_event(
-        "CdhCore.fatalHandler.BootloaderNotArmed", timeout=2
+        "ReferenceDeployment.bootloaderTrigger.BootloaderNotArmed", timeout=2
     )
 
 
@@ -100,9 +102,11 @@ def test_enter_bootloader_reboots_into_bootsel(fprime_test_api, data_port_one):
     serial = _serial(data_port_one)
     key = _bootloader_key(data_port_one)
     fprime_test_api.send_and_assert_command(
-        "CdhCore.fatalHandler.ARM_BOOTLOADER", [key]
+        "ReferenceDeployment.bootloaderTrigger.ARM_BOOTLOADER", [key]
     )
-    fprime_test_api.send_command("CdhCore.fatalHandler.ENTER_BOOTLOADER", [key])
+    fprime_test_api.send_command(
+        "ReferenceDeployment.bootloaderTrigger.TRIGGER_BOOTLOADER", [key]
+    )
 
     deadline = time.monotonic() + 10
     in_bootsel = False
