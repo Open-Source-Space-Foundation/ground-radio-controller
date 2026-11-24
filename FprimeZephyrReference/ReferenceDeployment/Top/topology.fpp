@@ -38,6 +38,7 @@ module ReferenceDeployment {
     instance downlinkPassThrough
     instance downlinkComQueue
     instance activityLeds
+    instance bootloaderTrigger
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
