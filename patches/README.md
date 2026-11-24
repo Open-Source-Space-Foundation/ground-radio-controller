@@ -71,3 +71,17 @@ in flight, nothing ever sends that buffer, and the port stays silent until the
 stick re-enumerates. The old `poll_out` path hid this, because every
 `poll_out` call scheduled the TX work. The patch schedules the leftover data
 on resume. It should go upstream to Zephyr.
+
+## fprime-comqueue-raw-buffer-apid.patch
+
+`nix run .#setup` applies it to the F Prime submodule.
+
+The relay queues raw radio frames in `ComQueue` both ways: received LoRa
+frames in `downlinkComQueue` and host frames for the radio in
+`uplinkComQueue`. `ComQueue` reads the first two bytes of every queued buffer
+as an APID and stores them in the frame context with `set_apid`. A raw frame
+starts with its frame header (0x044x for an Electra TM frame, 0x2044 for a TC
+frame), which is not a valid `ComCfg::Apid`, and storing it fails the enum's
+`FW_ASSERT`. The stick then rebooted on every frame. The patch stores
+`FW_PACKET_UNKNOWN` when the leading bytes are not a valid APID; valid APIDs
+keep their value. It should go upstream to F Prime.

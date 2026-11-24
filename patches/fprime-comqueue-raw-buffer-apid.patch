@@ -1,0 +1,28 @@
+diff --git a/Svc/ComQueue/ComQueue.cpp b/Svc/ComQueue/ComQueue.cpp
+index 3490f5533..6addca609 100644
+--- a/Svc/ComQueue/ComQueue.cpp
++++ b/Svc/ComQueue/ComQueue.cpp
+@@ -411,7 +411,10 @@ void ComQueue::sendComBuffer(Fw::ComBuffer& comBuffer, FwIndexType queueIndex) {
+     FwPacketDescriptorType descriptor = 0;
+     Fw::SerializeStatus status = comBuffer.deserializeTo(descriptor);
+     FW_ASSERT(status == Fw::FW_SERIALIZE_OK, static_cast<FwAssertArgType>(status));
+-    context.set_apid(static_cast<ComCfg::Apid::T>(descriptor));
++    // Queued data need not be an F Prime packet (a relay forwards raw radio frames), so its leading bytes
++    // may not be a valid APID, and storing an invalid one asserts in ComCfg::Apid.
++    context.set_apid(ComCfg::Apid::isValid(descriptor) ? static_cast<ComCfg::Apid::T>(descriptor)
++                                                       : ComCfg::Apid::FW_PACKET_UNKNOWN);
+     context.set_comQueueIndex(queueIndex);
+     const BufferState previousState = this->m_buffer_state.exchange(UNOWNED);
+     FW_ASSERT(previousState == OWNED, static_cast<FwAssertArgType>(previousState));
+@@ -429,7 +432,10 @@ void ComQueue::sendBuffer(Fw::Buffer& buffer, FwIndexType queueIndex) {
+     FwPacketDescriptorType descriptor;
+     Fw::SerializeStatus status = buffer.getDeserializer().deserializeTo(descriptor);
+     FW_ASSERT(status == Fw::FW_SERIALIZE_OK, static_cast<FwAssertArgType>(status));
+-    context.set_apid(static_cast<ComCfg::Apid::T>(descriptor));
++    // Queued data need not be an F Prime packet (a relay forwards raw radio frames), so its leading bytes
++    // may not be a valid APID, and storing an invalid one asserts in ComCfg::Apid.
++    context.set_apid(ComCfg::Apid::isValid(descriptor) ? static_cast<ComCfg::Apid::T>(descriptor)
++                                                       : ComCfg::Apid::FW_PACKET_UNKNOWN);
+     context.set_comQueueIndex(queueIndex);
+     const BufferState previousState = this->m_buffer_state.exchange(UNOWNED);
+     FW_ASSERT(previousState == OWNED, static_cast<FwAssertArgType>(previousState));

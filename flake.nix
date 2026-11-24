@@ -163,6 +163,7 @@
             apply_patch lib/zephyr-workspace/zephyr "$PWD/patches/zephyr-sx126x-wakeup-busy-delay.patch"
             apply_patch lib/zephyr-workspace/zephyr "$PWD/patches/zephyr-cdc-acm-resume-tx.patch"
             apply_patch lib/fprime-zephyr "$PWD/patches/fprime-zephyr-zephyr-4.5.patch"
+            apply_patch lib/fprime "$PWD/patches/fprime-comqueue-raw-buffer-apid.patch"
           '';
 
           # BOARD=<board> nix run .#generate  (defaults to settings.ini)
