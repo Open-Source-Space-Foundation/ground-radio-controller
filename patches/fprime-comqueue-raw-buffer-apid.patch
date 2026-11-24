@@ -1,0 +1,106 @@
+diff --git a/Svc/ComQueue/ComQueue.cpp b/Svc/ComQueue/ComQueue.cpp
+index 3490f5533..6333c1be8 100644
+--- a/Svc/ComQueue/ComQueue.cpp
++++ b/Svc/ComQueue/ComQueue.cpp
+@@ -12,6 +12,17 @@
+
+ namespace Svc {
+
++namespace {
++//! APID for a queued buffer, taken from its first bytes. A queued buffer need not be an F Prime packet:
++//! a relay forwards whole radio frames, which start with a frame header (version and spacecraft ID),
++//! not an APID. Bytes that are not a valid ComCfg::Apid map to FW_PACKET_UNKNOWN; storing them as-is
++//! would fail ComCfg::Apid's assert.
++ComCfg::Apid::T apidFromLeadingBytes(FwPacketDescriptorType descriptor) {
++    return ComCfg::Apid::isValid(descriptor) ? static_cast<ComCfg::Apid::T>(descriptor)
++                                             : ComCfg::Apid::FW_PACKET_UNKNOWN;
++}
++}  // namespace
++
+ // ----------------------------------------------------------------------
+ // Construction, initialization, and destruction
+ // ----------------------------------------------------------------------
+@@ -411,7 +422,7 @@ void ComQueue::sendComBuffer(Fw::ComBuffer& comBuffer, FwIndexType queueIndex) {
+     FwPacketDescriptorType descriptor = 0;
+     Fw::SerializeStatus status = comBuffer.deserializeTo(descriptor);
+     FW_ASSERT(status == Fw::FW_SERIALIZE_OK, static_cast<FwAssertArgType>(status));
+-    context.set_apid(static_cast<ComCfg::Apid::T>(descriptor));
++    context.set_apid(apidFromLeadingBytes(descriptor));
+     context.set_comQueueIndex(queueIndex);
+     const BufferState previousState = this->m_buffer_state.exchange(UNOWNED);
+     FW_ASSERT(previousState == OWNED, static_cast<FwAssertArgType>(previousState));
+@@ -429,7 +440,7 @@ void ComQueue::sendBuffer(Fw::Buffer& buffer, FwIndexType queueIndex) {
+     FwPacketDescriptorType descriptor;
+     Fw::SerializeStatus status = buffer.getDeserializer().deserializeTo(descriptor);
+     FW_ASSERT(status == Fw::FW_SERIALIZE_OK, static_cast<FwAssertArgType>(status));
+-    context.set_apid(static_cast<ComCfg::Apid::T>(descriptor));
++    context.set_apid(apidFromLeadingBytes(descriptor));
+     context.set_comQueueIndex(queueIndex);
+     const BufferState previousState = this->m_buffer_state.exchange(UNOWNED);
+     FW_ASSERT(previousState == OWNED, static_cast<FwAssertArgType>(previousState));
+diff --git a/Svc/ComQueue/test/ut/ComQueueTestMain.cpp b/Svc/ComQueue/test/ut/ComQueueTestMain.cpp
+index 395b62b8c..b2a075683 100644
+--- a/Svc/ComQueue/test/ut/ComQueueTestMain.cpp
++++ b/Svc/ComQueue/test/ut/ComQueueTestMain.cpp
+@@ -64,6 +64,11 @@ TEST(Nominal, ContextData) {
+     tester.testContextData();
+ }
+
++TEST(Nominal, RawFrameApid) {
++    Svc::ComQueueTester tester;
++    tester.testRawFrameApid();
++}
++
+ TEST(QueueModes, FIFOMode) {
+     Svc::ComQueueTester tester;
+     tester.testFIFOMode();
+diff --git a/Svc/ComQueue/test/ut/ComQueueTester.cpp b/Svc/ComQueue/test/ut/ComQueueTester.cpp
+index d94874852..89a408989 100644
+--- a/Svc/ComQueue/test/ut/ComQueueTester.cpp
++++ b/Svc/ComQueue/test/ut/ComQueueTester.cpp
+@@ -486,6 +486,32 @@ void ComQueueTester ::testContextData() {
+     component.cleanup();
+ }
+
++void ComQueueTester ::testRawFrameApid() {
++    // A relay queues raw radio frames: their leading bytes are a frame header, not an APID.
++    U8 rawFrame[] = {0x20, 0x44, 0x04, 0xf7, 0x00, 0x78, 0x78};  // CCSDS TC frame header
++    U8 telemPacket[] = {0x00, 0x01, 0xad, 0xbe};                  // FW_PACKET_TELEM
++    Fw::Buffer rawBuffer(rawFrame, sizeof(rawFrame));
++    Fw::Buffer telemBuffer(telemPacket, sizeof(telemPacket));
++    Fw::ComBuffer rawComBuffer(rawFrame, sizeof(rawFrame));
++    configure();
++
++    invoke_to_bufferQueueIn(0, rawBuffer);
++    emitOne();
++    ASSERT_EQ(ComCfg::Apid::FW_PACKET_UNKNOWN, this->fromPortHistory_dataOut->at(0).context.get_apid());
++    ASSERT_EQ(sizeof(rawFrame), this->fromPortHistory_dataOut->at(0).data.getSize());
++
++    invoke_to_bufferQueueIn(0, telemBuffer);
++    emitOne();
++    ASSERT_EQ(ComCfg::Apid::FW_PACKET_TELEM, this->fromPortHistory_dataOut->at(1).context.get_apid());
++
++    invoke_to_comPacketQueueIn(0, rawComBuffer, 0);
++    emitOne();
++    ASSERT_EQ(ComCfg::Apid::FW_PACKET_UNKNOWN, this->fromPortHistory_dataOut->at(2).context.get_apid());
++
++    clearFromPortHistory();
++    component.cleanup();
++}
++
+ void ComQueueTester ::from_dataOut_handler(FwIndexType portNum, Fw::Buffer& data, const ComCfg::FrameContext& context) {
+     this->pushFromPortEntry_dataOut(data, context);
+     this->invoke_to_dataReturnIn(0, data, context);
+diff --git a/Svc/ComQueue/test/ut/ComQueueTester.hpp b/Svc/ComQueue/test/ut/ComQueueTester.hpp
+index 4c9aba2ea..dd5b5470d 100644
+--- a/Svc/ComQueue/test/ut/ComQueueTester.hpp
++++ b/Svc/ComQueue/test/ut/ComQueueTester.hpp
+@@ -87,6 +87,8 @@ class ComQueueTester : public ComQueueGTestBase {
+
+     void testContextData();
+
++    void testRawFrameApid();
++
+     void testFIFOMode();
+
+     void testLIFOMode();

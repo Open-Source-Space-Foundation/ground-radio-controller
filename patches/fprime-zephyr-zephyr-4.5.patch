@@ -1,0 +1,149 @@
+diff --git a/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.cpp b/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.cpp
+index e6ad992..24d4b5a 100644
+--- a/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.cpp
++++ b/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.cpp
+@@ -21,6 +21,9 @@ namespace Zephyr {
+             const char *const compName
+         ) : ZephyrUartDriverComponentBase(compName)
+     {
++        ring_buf_init(&this->m_tx_ring_buf, TX_RING_BUF_SIZE, this->m_tx_ring_buf_data);
++        this->m_tx_retry.self = this;
++        k_work_init_delayable(&this->m_tx_retry.work, tx_retry_handler);
+     }
+
+     ZephyrUartDriver ::
+@@ -47,7 +50,7 @@ namespace Zephyr {
+         uart_configure(this->m_dev, &uart_cfg);
+
+         ring_buf_init(&this->m_ring_buf, RING_BUF_SIZE, this->m_ring_buf_data);
+-        uart_irq_callback_user_data_set(this->m_dev, serial_cb, &this->m_ring_buf);
++        uart_irq_callback_user_data_set(this->m_dev, serial_cb, this);
+
+         uart_irq_rx_enable(this->m_dev);
+ 	    uart_irq_tx_disable(this->m_dev);
+@@ -59,24 +62,56 @@ namespace Zephyr {
+
+     void ZephyrUartDriver::serial_cb(const struct device *dev, void *user_data)
+     {
+-        struct ring_buf *ring_buf = reinterpret_cast<struct ring_buf *>(user_data);
+-
+-        if (!uart_irq_update(dev)) {
+-            return;
++        ZephyrUartDriver *self = reinterpret_cast<ZephyrUartDriver *>(user_data);
++
++        uart_irq_update(dev);
++
++        if (uart_irq_rx_ready(dev)) {
++            U8 c;
++            // TODO: Get rid of the endless loop (in an IRQ handler!).
++            while (uart_fifo_read(dev, &c, 1) == 1) {
++                if (ring_buf_put(&self->m_ring_buf, &c, 1) != 1) {
++                    // TODO: Handle properly.
++                    printk("UART buffer overrun\n");
++                }
++            }
+         }
+
+-        if (!uart_irq_rx_ready(dev)) {
+-            return;
++        if (uart_irq_tx_ready(dev)) {
++            self->drain_tx();
+         }
++    }
+
+-        U8 c;
+-        // TODO: Get rid of the endless loop (in an IRQ handler!).
+-        while (uart_fifo_read(dev, &c, 1) == 1) {
+-            if (ring_buf_put(ring_buf, &c, 1) != 1) {
+-                // TODO: Handle properly.
+-                printk("UART buffer overrun\n");
++    void ZephyrUartDriver::drain_tx()
++    {
++        U8 *data;
++        int written = 0;
++        const U32 available = ring_buf_get_ptr(&this->m_tx_ring_buf, &data, 0);
++        if (available > 0) {
++            written = uart_fifo_fill(this->m_dev, data, available);
++            if (written > 0) {
++                ring_buf_consume(&this->m_tx_ring_buf, written);
+             }
+         }
++
++        // Pairs with the enable in send_handler, so a frame queued right now can't be stranded.
++        k_spinlock_key_t key = k_spin_lock(&this->m_tx_lock);
++        if (ring_buf_is_empty(&this->m_tx_ring_buf)) {
++            uart_irq_tx_disable(this->m_dev);
++        } else if (written <= 0) {
++            // CDC ACM can report TX space yet take nothing (USB suspended, or its current
++            // buffer still waiting to be queued). Staying enabled would re-run this callback
++            // in a tight loop on the work queue, so back off and try again shortly.
++            uart_irq_tx_disable(this->m_dev);
++            k_work_reschedule(&this->m_tx_retry.work, K_MSEC(1));
++        }
++        k_spin_unlock(&this->m_tx_lock, key);
++    }
++
++    void ZephyrUartDriver::tx_retry_handler(struct k_work *work)
++    {
++        TxRetry *retry = CONTAINER_OF(k_work_delayable_from_work(work), TxRetry, work);
++        uart_irq_tx_enable(retry->self->m_dev);
+     }
+
+     // ----------------------------------------------------------------------
+@@ -107,9 +142,20 @@ namespace Zephyr {
+             Fw::Buffer &sendBuffer
+         )
+     {
+-        for (U32 i = 0; i < sendBuffer.getSize(); i++) {
+-            uart_poll_out(this->m_dev, sendBuffer.getData()[i]);
++        // Queue the whole frame or none of it, so the host never sees a partial frame.
++        // serial_cb drains the queue whenever the UART can take more. send is a guarded
++        // port, so this is the ring's only producer and serial_cb its only consumer.
++        const U32 size = sendBuffer.getSize();
++        if (ring_buf_space_get(&this->m_tx_ring_buf) < size) {
++            // No host is draining the port. Drop the frame but report OP_OK: a failure
++            // status parks ComQueue until the driver reconnects, which it never does.
++            return Drv::ByteStreamStatus::OP_OK;
+         }
++        ring_buf_put(&this->m_tx_ring_buf, sendBuffer.getData(), size);
++
++        k_spinlock_key_t key = k_spin_lock(&this->m_tx_lock);
++        uart_irq_tx_enable(this->m_dev);
++        k_spin_unlock(&this->m_tx_lock, key);
+         return Drv::ByteStreamStatus::OP_OK;
+     }
+
+diff --git a/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.hpp b/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.hpp
+index 2edc409..e39f900 100644
+--- a/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.hpp
++++ b/fprime-zephyr/Drv/ZephyrUartDriver/ZephyrUartDriver.hpp
+@@ -46,6 +46,12 @@ namespace Zephyr {
+
+         static void serial_cb(const struct device *dev, void *user_data);
+
++        //! Move queued TX bytes into the UART. Runs only from serial_cb.
++        void drain_tx();
++
++        //! Re-enables the TX interrupt after drain_tx backed off.
++        static void tx_retry_handler(struct k_work *work);
++
+         // ----------------------------------------------------------------------
+         // Handler implementations for user-defined typed input ports
+         // ----------------------------------------------------------------------
+@@ -76,6 +82,16 @@ namespace Zephyr {
+
+         U8 m_ring_buf_data[RING_BUF_SIZE];
+         struct ring_buf m_ring_buf;
++
++        //! Holds two full 1024-byte TM frames.
++        static constexpr U32 TX_RING_BUF_SIZE = 2048;
++        U8 m_tx_ring_buf_data[TX_RING_BUF_SIZE];
++        struct ring_buf m_tx_ring_buf;
++        struct k_spinlock m_tx_lock = {};
++        struct TxRetry {
++            struct k_work_delayable work;
++            ZephyrUartDriver *self;
++        } m_tx_retry;
+     };
+
+ } // end namespace Zephyr

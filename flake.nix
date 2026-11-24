@@ -141,28 +141,29 @@
         in
         {
           # One-time (and idempotent) workspace setup: submodules, venv, west
-          # workspace, and the SX126x wake-up patch in the Zephyr submodule.
+          # workspace, and the local patches in patches/ (see its README).
           setup = app "setup" ''
             git submodule update --init --recursive
             sync_venv
             [ -f .west/config ] || west init --local .
             west update
             west zephyr-export
-            patch=patches/zephyr-sx126x-wakeup-busy-delay.patch
-            (
-              cd lib/zephyr-workspace/zephyr
-              if git apply --check "../../../$patch" 2>/dev/null; then
-                git apply "../../../$patch"
-              fi
-            )
-            # fprime-zephyr predates Zephyr 4.5's void uart_irq_update().
-            patch=patches/fprime-zephyr-uart-irq-update-void.patch
-            (
-              cd lib/fprime-zephyr
-              if git apply --check "../../$patch" 2>/dev/null; then
-                git apply "../../$patch"
-              fi
-            )
+            # Apply a patch unless it is already applied; fail if it no longer fits.
+            apply_patch() {
+              (
+                cd "$1"
+                if ! git apply --reverse --check "$2" 2>/dev/null; then
+                  git apply "$2" || {
+                    echo "setup: $2 does not apply to $1 (reset it with: git -C $1 checkout -- .)" >&2
+                    exit 1
+                  }
+                fi
+              )
+            }
+            apply_patch lib/zephyr-workspace/zephyr "$PWD/patches/zephyr-sx126x-wakeup-busy-delay.patch"
+            apply_patch lib/zephyr-workspace/zephyr "$PWD/patches/zephyr-cdc-acm-resume-tx.patch"
+            apply_patch lib/fprime-zephyr "$PWD/patches/fprime-zephyr-zephyr-4.5.patch"
+            apply_patch lib/fprime "$PWD/patches/fprime-comqueue-raw-buffer-apid.patch"
           '';
 
           # BOARD=<board> nix run .#generate  (defaults to settings.ini)
