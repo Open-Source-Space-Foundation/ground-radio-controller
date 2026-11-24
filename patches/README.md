@@ -74,14 +74,20 @@ on resume. It should go upstream to Zephyr.
 
 ## fprime-comqueue-raw-buffer-apid.patch
 
-`nix run .#setup` applies it to the F Prime submodule.
+**Required for the LoRa relay.** `nix run .#setup` applies it to the F Prime
+submodule. Drop it once F Prime carries the change.
 
-The relay queues raw radio frames in `ComQueue` both ways: received LoRa
-frames in `downlinkComQueue` and host frames for the radio in
-`uplinkComQueue`. `ComQueue` reads the first two bytes of every queued buffer
-as an APID and stores them in the frame context with `set_apid`. A raw frame
-starts with its frame header (0x044x for an Electra TM frame, 0x2044 for a TC
-frame), which is not a valid `ComCfg::Apid`, and storing it fails the enum's
-`FW_ASSERT`. The stick then rebooted on every frame. The patch stores
-`FW_PACKET_UNKNOWN` when the leading bytes are not a valid APID; valid APIDs
-keep their value. It should go upstream to F Prime.
+The stick is a relay: it queues whole radio frames in `ComQueue` both ways,
+received LoRa frames in `downlinkComQueue` and host frames for the radio in
+`uplinkComQueue`. `ComQueue` labels every queued buffer with an APID read from
+its first two bytes. A radio frame starts with a CCSDS frame header (version
+and spacecraft ID: 0x044x for an Electra TM frame, 0x2044 for a TC frame), not
+an APID. Unpatched, storing that value fails `ComCfg::Apid`'s assert, and the
+stick reboots on every frame it relays.
+
+The patch reads the APID through `apidFromLeadingBytes()`. Bytes that are a
+valid `ComCfg::Apid` keep their value, so queues of real F Prime packets (the
+`ComCcsds` queue) behave as before. Anything else is labelled
+`FW_PACKET_UNKNOWN` and passes through unchanged. This is the relay's normal
+case for every spacecraft, not a legacy mode. The `Nominal.RawFrameApid` unit
+test in `Svc/ComQueue/test/ut` covers both cases.
